@@ -105,7 +105,7 @@ class SamAudioInfer:
         reranking_candidates: int = 3,
         device: DeviceType = "cuda",
         dtype: DType = "bfloat16",
-        precision: Optional[str] = None,
+        precision_config: Optional["PrecisionConfig"] = None,
         chunk_duration: float = 25.0,
         hf_token: Optional[str] = None,
         cache_dir: Optional[Union[str, Path]] = None,
@@ -124,11 +124,11 @@ class SamAudioInfer:
             reranking_candidates: Number of candidates for text ranker (default 3)
             device: Device to run inference on ("cuda", "cpu", "mps")
             dtype: Data type ("float32", "float16", "bfloat16")
-            precision: Precision preset ("default", "fast", "quality", "reproducible")
-                - "default": Balanced speed and quality (TF32 enabled)
-                - "fast": Maximum speed (medium matmul precision, TF32)
-                - "quality": Maximum quality (highest precision, no TF32)
-                - "reproducible": Deterministic results
+            precision_config: PrecisionConfig for fine-grained control over:
+                - matmul_precision: "highest", "high", or "medium"
+                - allow_tf32: Enable TF32 (~3x speedup on Ampere+ GPUs)
+                - cudnn_benchmark: Enable cuDNN auto-tuner
+                - cudnn_deterministic: Force reproducible results
             chunk_duration: Default chunk duration for long audio (seconds)
             hf_token: HuggingFace API token for gated models (or set HF_TOKEN env var)
             cache_dir: Directory to cache downloaded models
@@ -141,35 +141,25 @@ class SamAudioInfer:
             >>> # Basic lite mode (most VRAM efficient, ~4-5GB)
             >>> model = SamAudioInfer.from_pretrained("base", lite_mode=True)
 
-            >>> # With text ranker for better quality (~6-7GB)
-            >>> model = SamAudioInfer.from_pretrained(
-            ...     "base",
-            ...     lite_mode=True,
-            ...     enable_text_ranker=True,
-            ...     reranking_candidates=5,
+            >>> # With custom precision settings
+            >>> from sam_audio_infer import PrecisionConfig
+            >>> config = PrecisionConfig(
+            ...     matmul_precision="medium",  # fastest
+            ...     allow_tf32=True,
+            ...     cudnn_benchmark=True,
             ... )
+            >>> model = SamAudioInfer.from_pretrained("base", precision_config=config)
 
-            >>> # With span predictor (~6-7GB)
-            >>> model = SamAudioInfer.from_pretrained(
-            ...     "base",
-            ...     lite_mode=True,
-            ...     enable_span_predictor=True,
+            >>> # Maximum quality (disable TF32)
+            >>> config = PrecisionConfig(
+            ...     matmul_precision="highest",
+            ...     allow_tf32=False,
+            ...     cudnn_deterministic=True,
             ... )
-
-            >>> # With both features (~8-9GB)
-            >>> model = SamAudioInfer.from_pretrained(
-            ...     "base",
-            ...     lite_mode=True,
-            ...     enable_text_ranker=True,
-            ...     enable_span_predictor=True,
-            ... )
-
-            >>> # Custom config for full control
-            >>> config = LiteModelConfig.with_text_ranker(reranking_candidates=5)
-            >>> model = SamAudioInfer.from_pretrained("base", lite_config=config)
+            >>> model = SamAudioInfer.from_pretrained("base", precision_config=config)
         """
         from .download import get_cache_dir, get_hf_token
-        from .precision import set_precision, PrecisionConfig
+        from .precision import apply_precision_config, PrecisionConfig
 
         # Load HF token from environment if not provided
         if hf_token is None:
@@ -180,19 +170,15 @@ class SamAudioInfer:
             cache_dir = get_cache_dir()
 
         # Apply precision configuration
-        if precision is not None:
-            if precision in ("default", "fast", "quality", "reproducible"):
-                precision_config = set_precision(precision)
-                if verbose:
-                    print(f"  Precision: {precision}")
-            else:
-                raise ValueError(
-                    f"Invalid precision preset: {precision}. "
-                    f"Use 'default', 'fast', 'quality', or 'reproducible'"
-                )
-        else:
-            # Apply default precision from environment or defaults
-            precision_config = set_precision("default")
+        if precision_config is None:
+            precision_config = PrecisionConfig.from_env()
+
+        apply_precision_config(precision_config)
+
+        if verbose:
+            print(f"  Precision: matmul={precision_config.matmul_precision}, "
+                  f"tf32={precision_config.allow_tf32}, "
+                  f"cudnn_bench={precision_config.cudnn_benchmark}")
 
         # Resolve model name and size
         if model_name_or_path in MODEL_NAME_MAP:

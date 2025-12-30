@@ -65,7 +65,6 @@ from .download import (
 from .precision import (
     PrecisionConfig,
     apply_precision_config,
-    set_precision,
     get_current_precision,
     print_precision_info,
 )
@@ -106,7 +105,6 @@ __all__ = [
     # Precision
     "PrecisionConfig",
     "apply_precision_config",
-    "set_precision",
     "get_current_precision",
     "print_precision_info",
 ]

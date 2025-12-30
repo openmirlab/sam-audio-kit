@@ -18,6 +18,28 @@ def cmd_separate(args):
 
     # Import here to avoid slow startup
     from .model import SamAudioInfer
+    from .precision import PrecisionConfig
+
+    # Build precision config from explicit flags
+    allow_tf32 = True  # default
+    if args.no_tf32:
+        allow_tf32 = False
+    elif args.tf32:
+        allow_tf32 = True
+
+    cudnn_benchmark = True  # default
+    if args.no_cudnn_benchmark:
+        cudnn_benchmark = False
+    elif args.cudnn_benchmark:
+        cudnn_benchmark = True
+
+    precision_config = PrecisionConfig(
+        matmul_precision=args.matmul_precision,
+        allow_tf32=allow_tf32,
+        cudnn_allow_tf32=allow_tf32,
+        cudnn_benchmark=cudnn_benchmark,
+        cudnn_deterministic=args.deterministic,
+    )
 
     try:
         # Load model
@@ -29,7 +51,7 @@ def cmd_separate(args):
             lite_mode=lite_mode,
             device=args.device,
             dtype=args.dtype,
-            precision=args.precision,
+            precision_config=precision_config,
             chunk_duration=args.chunk_duration,
             hf_token=args.hf_token,
             cache_dir=args.cache_dir,
@@ -224,11 +246,38 @@ Examples:
         help="Data type for inference (default: bfloat16)",
     )
     sep_parser.add_argument(
-        "--precision",
-        type=str,
+        "--tf32",
+        action="store_true",
         default=None,
-        choices=["default", "fast", "quality", "reproducible"],
-        help="Precision preset: default (balanced), fast (max speed), quality (max quality), reproducible",
+        help="Enable TF32 for ~3x speedup on Ampere+ GPUs (default: enabled)",
+    )
+    sep_parser.add_argument(
+        "--no-tf32",
+        action="store_true",
+        help="Disable TF32 for maximum precision",
+    )
+    sep_parser.add_argument(
+        "--matmul-precision",
+        type=str,
+        default="high",
+        choices=["highest", "high", "medium"],
+        help="Matrix multiplication precision: highest (slowest), high (balanced), medium (fastest)",
+    )
+    sep_parser.add_argument(
+        "--cudnn-benchmark",
+        action="store_true",
+        default=None,
+        help="Enable cuDNN auto-tuner for faster inference (default: enabled)",
+    )
+    sep_parser.add_argument(
+        "--no-cudnn-benchmark",
+        action="store_true",
+        help="Disable cuDNN auto-tuner",
+    )
+    sep_parser.add_argument(
+        "--deterministic",
+        action="store_true",
+        help="Force deterministic operations for reproducible results (slower)",
     )
     sep_parser.add_argument(
         "--device",
