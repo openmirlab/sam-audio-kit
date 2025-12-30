@@ -29,6 +29,7 @@ def cmd_separate(args):
             lite_mode=lite_mode,
             device=args.device,
             dtype=args.dtype,
+            precision=args.precision,
             chunk_duration=args.chunk_duration,
             hf_token=args.hf_token,
             cache_dir=args.cache_dir,
@@ -221,6 +222,13 @@ Examples:
         default="bfloat16",
         choices=["float32", "float16", "bfloat16"],
         help="Data type for inference (default: bfloat16)",
+    )
+    sep_parser.add_argument(
+        "--precision",
+        type=str,
+        default=None,
+        choices=["default", "fast", "quality", "reproducible"],
+        help="Precision preset: default (balanced), fast (max speed), quality (max quality), reproducible",
     )
     sep_parser.add_argument(
         "--device",

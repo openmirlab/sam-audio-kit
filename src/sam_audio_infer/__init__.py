@@ -62,6 +62,13 @@ from .download import (
     list_cached_models,
     clear_cache,
 )
+from .precision import (
+    PrecisionConfig,
+    apply_precision_config,
+    set_precision,
+    get_current_precision,
+    print_precision_info,
+)
 
 __all__ = [
     # Main class
@@ -96,4 +103,10 @@ __all__ = [
     "get_cache_dir",
     "list_cached_models",
     "clear_cache",
+    # Precision
+    "PrecisionConfig",
+    "apply_precision_config",
+    "set_precision",
+    "get_current_precision",
+    "print_precision_info",
 ]
