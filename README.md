@@ -24,18 +24,18 @@ This is a lightweight, dependency-minimal repackaging focused solely on inferenc
 ## Installation
 
 ```bash
-# From PyPI
-pip install sam-audio-infer
+# Using uv (recommended)
+uv add sam-audio-infer
 
-# Or with uv
-uv pip install sam-audio-infer
+# Or using pip
+pip install sam-audio-infer
 ```
 
 For development:
 ```bash
 git clone https://github.com/openmirlab/sam-audio-infer.git
 cd sam-audio-infer
-pip install -e .
+uv sync
 ```
 
 ### Prerequisites
