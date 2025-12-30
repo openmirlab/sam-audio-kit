@@ -33,7 +33,17 @@ import torch
 
 @dataclass
 class LiteModelConfig:
-    """Configuration for lite model creation."""
+    """Configuration for lite model creation.
+
+    This config controls which components are removed from the model and
+    how inference behaves. Use the class methods to create common configurations.
+
+    VRAM Estimates (with bfloat16):
+    - aggressive(): ~4-5 GB (base model)
+    - with_text_ranker(): ~6-7 GB (better quality reranking)
+    - with_span_predictor(): ~6-7 GB (time segment prediction)
+    - with_all_features(): ~8-9 GB (text ranker + span predictor)
+    """
 
     # Components to remove
     remove_vision_encoder: bool = True
@@ -53,6 +63,15 @@ class LiteModelConfig:
         if self.reranking_candidates < 1:
             raise ValueError("reranking_candidates must be at least 1")
 
+        # Auto-adjust inference settings based on component availability
+        if not self.remove_text_ranker and self.reranking_candidates == 1:
+            # Text ranker is kept but reranking_candidates is 1 - warn user
+            pass  # They may want this intentionally
+
+        if not self.remove_span_predictor and not self.predict_spans:
+            # Span predictor is kept but predict_spans is False - warn user
+            pass  # They may want this intentionally
+
     @property
     def components_to_remove(self) -> list[str]:
         """Get list of component names to remove."""
@@ -67,9 +86,25 @@ class LiteModelConfig:
             components.extend(["span_predictor", "span_predictor_transform"])
         return components
 
+    @property
+    def has_text_ranker(self) -> bool:
+        """Check if text ranker is enabled."""
+        return not self.remove_text_ranker
+
+    @property
+    def has_span_predictor(self) -> bool:
+        """Check if span predictor is enabled."""
+        return not self.remove_span_predictor
+
     @classmethod
     def aggressive(cls) -> "LiteModelConfig":
-        """Create aggressive lite config (remove all optional components)."""
+        """Create aggressive lite config (remove all optional components).
+
+        VRAM: ~4-5 GB (base model with bfloat16)
+
+        This is the most memory-efficient configuration, removing all
+        components not strictly needed for audio separation.
+        """
         return cls(
             remove_vision_encoder=True,
             remove_visual_ranker=True,
@@ -81,14 +116,80 @@ class LiteModelConfig:
 
     @classmethod
     def conservative(cls) -> "LiteModelConfig":
-        """Create conservative lite config (only remove vision encoder)."""
+        """Create conservative lite config (only remove vision encoder).
+
+        VRAM: ~8-9 GB (base model with bfloat16)
+
+        Keeps text ranker and span predictor for better quality.
+        """
         return cls(
             remove_vision_encoder=True,
             remove_visual_ranker=False,
             remove_text_ranker=False,
             remove_span_predictor=False,
+            predict_spans=True,
+            reranking_candidates=3,
+        )
+
+    @classmethod
+    def with_text_ranker(cls, reranking_candidates: int = 3) -> "LiteModelConfig":
+        """Create lite config with text ranker enabled for better quality.
+
+        VRAM: ~6-7 GB (base model with bfloat16)
+
+        The text ranker improves separation quality by reranking multiple
+        candidates. Higher reranking_candidates = better quality but slower.
+
+        Args:
+            reranking_candidates: Number of candidates to generate and rerank.
+                                  Recommended: 3-5 for good quality/speed balance.
+        """
+        return cls(
+            remove_vision_encoder=True,
+            remove_visual_ranker=True,
+            remove_text_ranker=False,  # Keep text ranker
+            remove_span_predictor=True,
             predict_spans=False,
+            reranking_candidates=reranking_candidates,
+        )
+
+    @classmethod
+    def with_span_predictor(cls) -> "LiteModelConfig":
+        """Create lite config with span predictor enabled.
+
+        VRAM: ~6-7 GB (base model with bfloat16)
+
+        The span predictor can identify time segments where the target
+        sound is present. Useful for locating specific sounds in audio.
+        """
+        return cls(
+            remove_vision_encoder=True,
+            remove_visual_ranker=True,
+            remove_text_ranker=True,
+            remove_span_predictor=False,  # Keep span predictor
+            predict_spans=True,
             reranking_candidates=1,
+        )
+
+    @classmethod
+    def with_all_features(cls, reranking_candidates: int = 3) -> "LiteModelConfig":
+        """Create lite config with both text ranker and span predictor.
+
+        VRAM: ~8-9 GB (base model with bfloat16)
+
+        This provides the best quality while still removing the vision
+        encoder which is not needed for audio-only tasks.
+
+        Args:
+            reranking_candidates: Number of candidates to generate and rerank.
+        """
+        return cls(
+            remove_vision_encoder=True,
+            remove_visual_ranker=True,
+            remove_text_ranker=False,  # Keep text ranker
+            remove_span_predictor=False,  # Keep span predictor
+            predict_spans=True,
+            reranking_candidates=reranking_candidates,
         )
 
 
@@ -229,6 +330,86 @@ def estimate_lite_savings(model_size: str = "base") -> dict[str, float]:
         },
     }
     return savings_map.get(model_size, savings_map["base"])
+
+
+def estimate_vram_for_config(
+    config: LiteModelConfig,
+    model_size: str = "base",
+    dtype: str = "bfloat16",
+) -> float:
+    """
+    Estimate VRAM usage for a specific lite configuration.
+
+    Args:
+        config: LiteModelConfig instance
+        model_size: Model size ("small", "base", or "large")
+        dtype: Data type ("float32", "float16", "bfloat16")
+
+    Returns:
+        Estimated VRAM usage in GB
+
+    Example:
+        >>> config = LiteModelConfig.with_text_ranker()
+        >>> vram = estimate_vram_for_config(config, "base", "bfloat16")
+        >>> print(f"Estimated VRAM: {vram:.1f} GB")
+    """
+    # Base VRAM usage (full model in float32)
+    base_vram = {
+        "small": 10.0,
+        "base": 13.0,
+        "large": 20.0,
+    }.get(model_size, 13.0)
+
+    # Component sizes in float32
+    component_sizes = estimate_lite_savings(model_size)
+
+    # Calculate savings from removed components
+    savings = 0.0
+    if config.remove_vision_encoder:
+        savings += component_sizes["vision_encoder"]
+    if config.remove_visual_ranker:
+        savings += component_sizes["visual_ranker"]
+    if config.remove_text_ranker:
+        savings += component_sizes["text_ranker"]
+    if config.remove_span_predictor:
+        savings += component_sizes["span_predictor"]
+
+    # Apply dtype multiplier
+    dtype_multiplier = {
+        "float32": 1.0,
+        "float16": 0.5,
+        "bfloat16": 0.5,
+    }.get(dtype, 0.5)
+
+    estimated = (base_vram - savings) * dtype_multiplier
+    return max(estimated, 1.0)  # Minimum 1 GB
+
+
+def get_config_description(config: LiteModelConfig) -> str:
+    """
+    Get a human-readable description of what's enabled/disabled.
+
+    Args:
+        config: LiteModelConfig instance
+
+    Returns:
+        Description string
+    """
+    removed = config.components_to_remove
+    kept = []
+
+    if not config.remove_text_ranker:
+        kept.append(f"text_ranker (reranking_candidates={config.reranking_candidates})")
+    if not config.remove_span_predictor:
+        kept.append(f"span_predictor (predict_spans={config.predict_spans})")
+
+    parts = []
+    if removed:
+        parts.append(f"Removed: {', '.join(removed)}")
+    if kept:
+        parts.append(f"Kept: {', '.join(kept)}")
+
+    return " | ".join(parts) if parts else "No changes"
 
 
 def is_lite_model(model: Any) -> bool:

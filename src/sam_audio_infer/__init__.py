@@ -32,7 +32,13 @@ open-source audio AI.
 __version__ = "0.1.0"
 
 from .model import SamAudioInfer
-from .lite import create_lite_model, LiteModelConfig, estimate_lite_savings
+from .lite import (
+    create_lite_model,
+    LiteModelConfig,
+    estimate_lite_savings,
+    estimate_vram_for_config,
+    get_config_description,
+)
 from .inference import SeparationResult, separate_audio
 from .chunking import AudioChunker, ChunkingConfig
 from .memory import (
@@ -46,6 +52,7 @@ from .types import (
     DeviceType,
     DType,
     ModelSize,
+    HUGGINGFACE_RESOURCES,
 )
 
 __all__ = [
@@ -55,6 +62,8 @@ __all__ = [
     "create_lite_model",
     "LiteModelConfig",
     "estimate_lite_savings",
+    "estimate_vram_for_config",
+    "get_config_description",
     # Inference
     "SeparationResult",
     "separate_audio",
@@ -71,4 +80,5 @@ __all__ = [
     "DeviceType",
     "DType",
     "ModelSize",
+    "HUGGINGFACE_RESOURCES",
 ]

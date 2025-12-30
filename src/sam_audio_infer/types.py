@@ -19,10 +19,35 @@ ModelSize = Literal["small", "base", "large"]
 AudioInput = Union[str, Path, np.ndarray, torch.Tensor]
 
 # Model name mappings
-MODEL_NAME_MAP: dict[ModelSize, str] = {
+MODEL_NAME_MAP: dict[str, str] = {
     "small": "facebook/sam-audio-small",
     "base": "facebook/sam-audio-base",
     "large": "facebook/sam-audio-large",
+}
+
+# Related HuggingFace resources (for documentation)
+HUGGINGFACE_RESOURCES = {
+    # Main separation models (we support these)
+    "models": {
+        "facebook/sam-audio-small": "Smallest model (~4GB lite), fastest inference",
+        "facebook/sam-audio-base": "Balanced model (~5GB lite), recommended",
+        "facebook/sam-audio-large": "Largest model (~7GB lite), best quality",
+    },
+    # Visual-optimized models (NOT supported - we remove vision encoder)
+    "models_visual": {
+        "facebook/sam-audio-small-tv": "Requires vision encoder (not supported in lite mode)",
+        "facebook/sam-audio-base-tv": "Requires vision encoder (not supported in lite mode)",
+        "facebook/sam-audio-large-tv": "Requires vision encoder (not supported in lite mode)",
+    },
+    # Quality assessment model (used internally for re-ranking)
+    "judge": {
+        "facebook/sam-audio-judge": "Quality assessment (recall, precision, faithfulness)",
+    },
+    # Evaluation datasets (not used for inference)
+    "datasets": {
+        "facebook/sam-audio-bench": "Evaluation benchmark (SFX, speech, music, etc.)",
+        "facebook/sam-audio-musdb18hq-test": "Music separation evaluation (MUSDB18HQ)",
+    },
 }
 
 # Default configurations
@@ -63,14 +88,54 @@ def get_torch_dtype(dtype: DType) -> torch.dtype:
     return dtype_map[dtype]
 
 
-def get_model_name(size: ModelSize) -> str:
-    """Get the HuggingFace model name for a given size."""
-    return MODEL_NAME_MAP[size]
+def get_model_name(size: str) -> str:
+    """Get the HuggingFace model name for a given size.
+
+    Args:
+        size: Model size ("small", "base", "large") or full HuggingFace ID
+
+    Returns:
+        HuggingFace model ID (e.g., "facebook/sam-audio-base")
+    """
+    if size in MODEL_NAME_MAP:
+        return MODEL_NAME_MAP[size]
+    # If it's already a full model name, return as-is
+    return size
 
 
-def estimate_vram(size: ModelSize, lite_mode: bool, dtype: DType) -> float:
-    """Estimate VRAM usage for a given configuration."""
+def get_model_size(model_name: str) -> ModelSize:
+    """Infer model size from model name.
+
+    Args:
+        model_name: Model size shorthand or full HuggingFace ID
+
+    Returns:
+        Model size ("small", "base", or "large")
+    """
+    if model_name in ("small", "base", "large"):
+        return model_name  # type: ignore
+    # Try to infer from model name
+    model_lower = model_name.lower()
+    if "small" in model_lower:
+        return "small"
+    elif "large" in model_lower:
+        return "large"
+    return "base"
+
+
+def estimate_vram(size: str, lite_mode: bool, dtype: DType) -> float:
+    """Estimate VRAM usage for a given configuration.
+
+    Args:
+        size: Model size or name
+        lite_mode: Whether lite mode is enabled
+        dtype: Data type for inference
+
+    Returns:
+        Estimated VRAM in GB
+    """
+    model_size = get_model_size(size)
     mode = "lite" if lite_mode else "full"
     dtype_key = "bfloat16" if dtype in ("bfloat16", "float16") else "float32"
     key = f"{mode}_{dtype_key}"
-    return VRAM_ESTIMATES[size][key]
+    return VRAM_ESTIMATES[model_size][key]

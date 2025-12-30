@@ -6,14 +6,20 @@ for using SAM-Audio with optimized inference settings.
 """
 
 import gc
+import os
 from pathlib import Path
 from typing import Any, Optional, Union
 
+from dotenv import load_dotenv
 import torch
+
+# Load environment variables from .env file
+# Searches in current directory and parent directories
+load_dotenv()
 
 from .chunking import AudioChunker
 from .inference import SeparationResult, separate_audio, load_audio
-from .lite import LiteModelConfig, create_lite_model, is_lite_model
+from .lite import LiteModelConfig, create_lite_model, is_lite_model, get_config_description
 from .memory import cleanup_gpu_memory, get_gpu_memory_info, MemoryTracker
 from .types import (
     AudioInput,
@@ -21,8 +27,10 @@ from .types import (
     DType,
     ModelSize,
     get_model_name,
+    get_model_size,
     get_torch_dtype,
     estimate_vram,
+    MODEL_NAME_MAP,
 )
 
 
@@ -92,6 +100,9 @@ class SamAudioInfer:
         model_name_or_path: Union[str, ModelSize],
         lite_mode: bool = True,
         lite_config: Optional[LiteModelConfig] = None,
+        enable_text_ranker: bool = False,
+        enable_span_predictor: bool = False,
+        reranking_candidates: int = 3,
         device: DeviceType = "cuda",
         dtype: DType = "bfloat16",
         chunk_duration: float = 25.0,
@@ -103,14 +114,17 @@ class SamAudioInfer:
         Load SAM-Audio model from HuggingFace Hub or local path.
 
         Args:
-            model_name_or_path: Model name ("small", "base", "large"),
-                               HuggingFace model ID, or local path
+            model_name_or_path: Model size ("small", "base", "large"),
+                HuggingFace model ID, or local path
             lite_mode: Enable lite mode for reduced VRAM usage
-            lite_config: Custom lite mode configuration
+            lite_config: Custom lite mode configuration (overrides other lite settings)
+            enable_text_ranker: Keep text ranker for better quality (adds ~2GB VRAM)
+            enable_span_predictor: Keep span predictor for time segments (adds ~1-2GB VRAM)
+            reranking_candidates: Number of candidates for text ranker (default 3)
             device: Device to run inference on ("cuda", "cpu", "mps")
             dtype: Data type ("float32", "float16", "bfloat16")
             chunk_duration: Default chunk duration for long audio (seconds)
-            hf_token: HuggingFace API token for gated models
+            hf_token: HuggingFace API token for gated models (or set HF_TOKEN env var)
             cache_dir: Directory to cache downloaded models
             verbose: Print loading progress
 
@@ -118,34 +132,55 @@ class SamAudioInfer:
             SamAudioInfer instance ready for inference
 
         Example:
-            >>> # Using model size shorthand
+            >>> # Basic lite mode (most VRAM efficient, ~4-5GB)
             >>> model = SamAudioInfer.from_pretrained("base", lite_mode=True)
 
-            >>> # Using full model name
+            >>> # With text ranker for better quality (~6-7GB)
             >>> model = SamAudioInfer.from_pretrained(
-            ...     "facebook/sam-audio-large",
+            ...     "base",
             ...     lite_mode=True,
-            ...     dtype="bfloat16",
+            ...     enable_text_ranker=True,
+            ...     reranking_candidates=5,
             ... )
+
+            >>> # With span predictor (~6-7GB)
+            >>> model = SamAudioInfer.from_pretrained(
+            ...     "base",
+            ...     lite_mode=True,
+            ...     enable_span_predictor=True,
+            ... )
+
+            >>> # With both features (~8-9GB)
+            >>> model = SamAudioInfer.from_pretrained(
+            ...     "base",
+            ...     lite_mode=True,
+            ...     enable_text_ranker=True,
+            ...     enable_span_predictor=True,
+            ... )
+
+            >>> # Custom config for full control
+            >>> config = LiteModelConfig.with_text_ranker(reranking_candidates=5)
+            >>> model = SamAudioInfer.from_pretrained("base", lite_config=config)
         """
-        # Resolve model name
-        if model_name_or_path in ("small", "base", "large"):
-            model_name = get_model_name(model_name_or_path)  # type: ignore
-            model_size = model_name_or_path
+        # Load HF token from environment if not provided
+        if hf_token is None:
+            hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN")
+
+        # Resolve model name and size
+        if model_name_or_path in MODEL_NAME_MAP:
+            # Known size shorthand (e.g., "base", "large")
+            model_name = get_model_name(model_name_or_path)
+            model_size = model_name_or_path  # type: ignore
         else:
+            # Full model name or path
             model_name = model_name_or_path
-            # Try to infer size from name
-            if "small" in model_name.lower():
-                model_size = "small"
-            elif "large" in model_name.lower():
-                model_size = "large"
-            else:
-                model_size = "base"
+            model_size = get_model_size(model_name_or_path)
 
         # Estimate VRAM
-        estimated_vram = estimate_vram(model_size, lite_mode, dtype)  # type: ignore
+        estimated_vram = estimate_vram(model_size, lite_mode, dtype)
         if verbose:
             print(f"Loading {model_name}")
+            print(f"  Model size: {model_size}")
             print(f"  Lite mode: {lite_mode}")
             print(f"  Dtype: {dtype}")
             print(f"  Estimated VRAM: ~{estimated_vram:.1f} GB")
@@ -187,13 +222,26 @@ class SamAudioInfer:
             if verbose:
                 print("  Applying lite mode optimizations...")
 
+            # Build lite config from convenience parameters if not explicitly provided
             if lite_config is None:
-                lite_config = LiteModelConfig.aggressive()
+                if enable_text_ranker and enable_span_predictor:
+                    lite_config = LiteModelConfig.with_all_features(
+                        reranking_candidates=reranking_candidates
+                    )
+                elif enable_text_ranker:
+                    lite_config = LiteModelConfig.with_text_ranker(
+                        reranking_candidates=reranking_candidates
+                    )
+                elif enable_span_predictor:
+                    lite_config = LiteModelConfig.with_span_predictor()
+                else:
+                    lite_config = LiteModelConfig.aggressive()
 
             model = create_lite_model(model, lite_config)
 
             if verbose:
-                print("    Removed: vision_encoder, rankers, span_predictor")
+                config_desc = get_config_description(lite_config)
+                print(f"    {config_desc}")
 
         # Create instance
         instance = cls(
