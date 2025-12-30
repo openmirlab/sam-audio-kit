@@ -705,13 +705,30 @@ warmup_model(model, duration_seconds=1.0)
 
 ## Benchmarks
 
-### VRAM Usage
+### VRAM Usage by Configuration (Base Model)
+
+Tested on RTX 4090 (24 GB VRAM):
+
+| Configuration | bfloat16 | float16 | float32 |
+|--------------|----------|---------|---------|
+| **aggressive** (lite) | **2.84 GB** | 2.91 GB | 5.21 GB |
+| with_text_ranker | 6.19 GB | 6.19 GB | 11.94 GB |
+| with_span_predictor | 5.96 GB | 5.96 GB | 11.29 GB |
+| with_all_features | 9.31 GB | 9.31 GB | OOM |
+| **no_lite** (full) | 12.73 GB | 12.73 GB | OOM |
+
+**Key findings:**
+- **bfloat16 vs float16**: Nearly identical VRAM usage
+- **bfloat16 vs float32**: ~2x reduction (2.84 vs 5.21 GB)
+- **Lite mode savings**: ~78% reduction (2.84 vs 12.73 GB)
+- **Recommended**: `aggressive` + `bfloat16` for most use cases
+
+### VRAM Summary by Model Size
 
 | Model | Original | Lite + bfloat16 | Reduction |
 |-------|----------|-----------------|-----------|
-| Small | ~10 GB | **~4 GB** | **60%** |
-| Base | ~13 GB | **~5 GB** | **62%** |
-| Large | ~20 GB | **~7 GB** | **65%** |
+| Base | ~13 GB | **~2.8 GB** | **78%** |
+| Large | ~20 GB | **~4-5 GB** | **~75%** |
 
 ### GPU Compatibility
 

@@ -219,19 +219,18 @@ class SamAudioInfer:
 
         # Load model and processor
         model_kwargs = {}
-        processor_kwargs = {}
         if hf_token:
             model_kwargs["token"] = hf_token
         if cache_dir:
             model_kwargs["cache_dir"] = str(cache_dir)
-            processor_kwargs["cache_dir"] = str(cache_dir)
+        # Note: SAMAudioProcessor doesn't accept cache_dir
 
         if verbose:
             print("  Loading model...")
 
         with MemoryTracker("Model Loading") if verbose and device == "cuda" else nullcontext():
             model = SAMAudio.from_pretrained(model_name, **model_kwargs)
-            processor = SAMAudioProcessor.from_pretrained(model_name, **processor_kwargs)
+            processor = SAMAudioProcessor.from_pretrained(model_name)
 
         # Apply lite mode optimizations
         if lite_mode:
