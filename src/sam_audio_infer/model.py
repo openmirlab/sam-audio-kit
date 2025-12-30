@@ -204,18 +204,20 @@ class SamAudioInfer:
             )
 
         # Load model and processor
-        load_kwargs = {}
+        model_kwargs = {}
+        processor_kwargs = {}
         if hf_token:
-            load_kwargs["token"] = hf_token
+            model_kwargs["token"] = hf_token
         if cache_dir:
-            load_kwargs["cache_dir"] = str(cache_dir)
+            model_kwargs["cache_dir"] = str(cache_dir)
+            processor_kwargs["cache_dir"] = str(cache_dir)
 
         if verbose:
             print("  Loading model...")
 
         with MemoryTracker("Model Loading") if verbose and device == "cuda" else nullcontext():
-            model = SAMAudio.from_pretrained(model_name, **load_kwargs)
-            processor = SAMAudioProcessor.from_pretrained(model_name, **load_kwargs)
+            model = SAMAudio.from_pretrained(model_name, **model_kwargs)
+            processor = SAMAudioProcessor.from_pretrained(model_name, **processor_kwargs)
 
         # Apply lite mode optimizations
         if lite_mode:
@@ -290,7 +292,7 @@ class SamAudioInfer:
     @property
     def sample_rate(self) -> int:
         """Get the model's expected sample rate."""
-        return getattr(self._processor, "sampling_rate", 16000)
+        return getattr(self._processor, "audio_sampling_rate", None) or getattr(self._processor, "sampling_rate", 48000)
 
     def separate(
         self,

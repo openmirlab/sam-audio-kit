@@ -145,8 +145,8 @@ def separate_audio(
     import time
     start_time = time.time()
 
-    # Get model's expected sample rate
-    model_sample_rate = getattr(processor, "sampling_rate", 16000)
+    # Get model's expected sample rate (SAM-Audio uses audio_sampling_rate, not sampling_rate)
+    model_sample_rate = getattr(processor, "audio_sampling_rate", None) or getattr(processor, "sampling_rate", 48000)
 
     # Load and prepare audio
     audio, sr = load_audio(audio_input, target_sample_rate=model_sample_rate, device="cpu")
@@ -287,15 +287,14 @@ def _process_single(
     Returns:
         Tuple of (target, residual) tensors
     """
-    # Prepare batch
+    # Prepare batch (processor expects descriptions first, then audios)
     batch = processor(
-        audios=[audio],
         descriptions=[description],
-        return_tensors="pt",
+        audios=[audio],
     )
 
-    # Move to device
-    batch = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
+    # Move to device (Batch object has a to() method)
+    batch = batch.to(device)
 
     # Run inference
     with torch.inference_mode():

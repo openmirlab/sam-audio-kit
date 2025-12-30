@@ -467,7 +467,7 @@ class SeparationResult:
 
 ## Requirements
 
-- Python >= 3.10
+- Python >= 3.11
 - PyTorch >= 2.0.0
 - torchaudio >= 2.0.0
 - CUDA-capable GPU with at least 4GB VRAM (lite + bfloat16)

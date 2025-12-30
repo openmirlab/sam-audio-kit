@@ -195,14 +195,21 @@ class LiteModelConfig:
 
 def _get_vision_encoder_dim(model: Any) -> int:
     """Extract the vision encoder output dimension before removal."""
+    # First, try to get the dimension from align_masked_video layer
+    # This is the most reliable source since it's what the model actually expects
+    if hasattr(model, "align_masked_video") and model.align_masked_video is not None:
+        if hasattr(model.align_masked_video, "conv"):
+            # Conv1d weight shape: [out_channels, in_channels, kernel_size]
+            return model.align_masked_video.conv.weight.shape[1]
+
+    # Fallback: try vision encoder config
     if hasattr(model, "vision_encoder") and model.vision_encoder is not None:
-        # Try to get the output dimension from the vision encoder
         if hasattr(model.vision_encoder, "config"):
             if hasattr(model.vision_encoder.config, "hidden_size"):
                 return model.vision_encoder.config.hidden_size
-        # Fallback to common dimensions
-        return 768
-    return 768  # Default dimension
+
+    # Default to 1024 which is the expected dimension for SAM-Audio base model
+    return 1024
 
 
 def _create_dummy_video_features_fn(vision_dim: int):
