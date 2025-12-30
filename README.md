@@ -520,6 +520,103 @@ cleanup_gpu_memory()
 | Music | 4.11 | 3.87 | **4.22** |
 | Instruments (pro) | 4.24 | 4.27 | **4.49** |
 
+### Precision Settings
+
+Fine-grained control over numerical precision for speed vs quality trade-offs.
+
+#### Options
+
+| Setting | Values | Description |
+|---------|--------|-------------|
+| `matmul_precision` | `highest`, `high`, `medium` | Internal precision for matrix multiplications |
+| `tf32` | `true`, `false` | Enable TensorFloat-32 (~3x speedup on Ampere+ GPUs) |
+| `cudnn_benchmark` | `true`, `false` | Auto-tune convolution algorithms |
+| `deterministic` | `true`, `false` | Force reproducible results (slower) |
+
+#### What is `matmul_precision`?
+
+Controls the internal precision PyTorch uses for matrix multiplications:
+
+| Value | Internal Precision | Speed | Quality |
+|-------|-------------------|-------|---------|
+| `highest` | Full float32 (32-bit) | Slowest | Best |
+| `high` | TF32 (19-bit mantissa) | ~3x faster | Very good |
+| `medium` | Lower precision | Fastest | Good |
+
+**Note:** There is no `low` option. `medium` is the fastest available.
+
+For `dtype=bfloat16`, the impact is smaller since tensors are already in reduced precision.
+
+#### Environment Variables (Defaults)
+
+Set these to configure defaults across all runs:
+
+```bash
+export SAM_AUDIO_TF32=true                    # default: true
+export SAM_AUDIO_MATMUL_PRECISION=high        # default: high
+export SAM_AUDIO_CUDNN_BENCHMARK=true         # default: true
+export SAM_AUDIO_DETERMINISTIC=false          # default: false
+```
+
+#### CLI Flags (Override Per-Run)
+
+```bash
+# Fast inference (max speed)
+sam-audio-infer separate audio.wav -d "vocals" -o out.wav \
+    --matmul-precision medium
+
+# Maximum quality
+sam-audio-infer separate audio.wav -d "vocals" -o out.wav \
+    --no-tf32 --matmul-precision highest
+
+# Reproducible results
+sam-audio-infer separate audio.wav -d "vocals" -o out.wav \
+    --deterministic --no-cudnn-benchmark
+```
+
+| Flag | Description |
+|------|-------------|
+| `--tf32` | Enable TF32 (default) |
+| `--no-tf32` | Disable TF32 for maximum precision |
+| `--matmul-precision` | `highest`, `high`, `medium` |
+| `--cudnn-benchmark` | Enable cuDNN auto-tuner (default) |
+| `--no-cudnn-benchmark` | Disable cuDNN auto-tuner |
+| `--deterministic` | Force reproducible results |
+
+#### Python API
+
+```python
+from sam_audio_infer import SamAudioInfer, PrecisionConfig
+
+# Fast inference
+config = PrecisionConfig(
+    matmul_precision="medium",
+    allow_tf32=True,
+    cudnn_benchmark=True,
+)
+model = SamAudioInfer.from_pretrained("base", precision_config=config)
+
+# Maximum quality
+config = PrecisionConfig(
+    matmul_precision="highest",
+    allow_tf32=False,
+    cudnn_deterministic=True,
+)
+model = SamAudioInfer.from_pretrained("base", precision_config=config)
+
+# Load from environment variables
+config = PrecisionConfig.from_env()
+```
+
+#### Recommendations
+
+| Use Case | Settings |
+|----------|----------|
+| **Production** (fastest) | `matmul=medium`, `tf32=true`, `cudnn_benchmark=true` |
+| **Balanced** (default) | `matmul=high`, `tf32=true`, `cudnn_benchmark=true` |
+| **Quality-critical** | `matmul=highest`, `tf32=false` |
+| **Reproducible** | `matmul=highest`, `tf32=false`, `deterministic=true` |
+
 ---
 
 ## How It Works
