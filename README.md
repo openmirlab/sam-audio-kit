@@ -4,94 +4,49 @@ Optimized inference package for Meta's SAM-Audio model with VRAM-efficient lite 
 
 ## Features
 
-- **Multiple Model Sizes**: Support for `small`, `base`, and `large` models
 - **Lite Mode**: Reduce VRAM usage by ~40% by removing unused components
-- **Mixed Precision**: Support for bfloat16/float16 inference
+- **Mixed Precision**: Support for bfloat16/float16 inference (~50% additional savings)
+- **48kHz Audio**: Native high-quality audio processing at 48kHz sample rate
 - **Auto-Chunking**: Process long audio files without OOM errors
-- **Memory Management**: Automatic GPU cache cleanup between operations
-- **Simple API**: Easy-to-use interface for audio separation
+- **Model Caching**: Configurable cache directory with environment variable support
+- **Warmup Support**: Pre-compile CUDA kernels for faster inference
+- **Simple API**: Easy-to-use Python API and CLI
 
-## Available Models
+## Table of Contents
 
-### Supported Models
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Model Download & Caching](#model-download--caching)
+- [CLI Reference](#cli-reference)
+- [Python API](#python-api)
+- [Configuration](#configuration)
+- [How It Works](#how-it-works)
+- [Benchmarks](#benchmarks)
+- [Requirements](#requirements)
+- [Acknowledgments](#acknowledgments)
 
-| Model | HuggingFace ID | VRAM (Lite) | Use Case |
-|-------|----------------|-------------|----------|
-| `small` | `facebook/sam-audio-small` | **~4 GB** | Fast inference, limited VRAM |
-| `base` | `facebook/sam-audio-base` | **~5 GB** | **Recommended** for most use cases |
-| `large` | `facebook/sam-audio-large` | **~7 GB** | Best quality |
-
-### Quality Scores (Subjective 1-5)
-
-| Category | Small | Base | Large |
-|----------|-------|------|-------|
-| General SFX | 3.62 | 3.28 | 3.50 |
-| Speech | 3.99 | **4.25** | 4.03 |
-| Speaker | 3.12 | 3.57 | **3.60** |
-| Music | 4.11 | 3.87 | **4.22** |
-| Instruments (wild) | 3.56 | **3.66** | 3.66 |
-| Instruments (pro) | 4.24 | 4.27 | **4.49** |
-
-### Related HuggingFace Resources
-
-| Resource | Type | Purpose |
-|----------|------|---------|
-| `facebook/sam-audio-judge` | Model | Quality assessment (used internally for re-ranking) |
-| `facebook/sam-audio-bench` | Dataset | Evaluation benchmark |
-| `facebook/sam-audio-musdb18hq-test` | Dataset | Music separation evaluation |
-
-> **Note**: Visual-optimized models (`-tv` variants like `facebook/sam-audio-base-tv`) are **not supported** because this package removes the vision encoder to reduce VRAM. For video-based separation, use the original [sam-audio](https://github.com/facebookresearch/sam-audio) package.
-
-### VRAM by Configuration (Base Model + bfloat16)
-
-| Configuration | VRAM | Features | Use Case |
-|--------------|------|----------|----------|
-| `aggressive()` | ~4-5 GB | Basic separation | Maximum VRAM savings |
-| `with_text_ranker()` | ~6-7 GB | + Reranking | Better quality |
-| `with_span_predictor()` | ~6-7 GB | + Time segments | Locate sounds in audio |
-| `with_all_features()` | ~8-9 GB | + Both | Best quality |
-
-## Prerequisites
-
-### HuggingFace Access
-
-SAM-Audio models are gated. Before using this package:
-
-1. **Create a HuggingFace account** at [huggingface.co](https://huggingface.co)
-2. **Request access** to the model at [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base)
-3. **Generate an access token** at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-
-### Environment Setup
-
-Create a `.env` file in your project root (copy from `.env.example`):
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your HuggingFace token:
-
-```env
-HF_TOKEN=hf_your_token_here
-```
-
-The package automatically loads this token - no need to pass it in code.
-
-Alternatively, you can:
-- Set the environment variable directly: `export HF_TOKEN=hf_your_token_here`
-- Use HuggingFace CLI: `huggingface-cli login`
-- Pass token explicitly: `SamAudioInfer.from_pretrained("base", hf_token="...")`
+---
 
 ## Installation
+
+### Prerequisites
+
+**HuggingFace Access Required**: SAM-Audio models are gated.
+
+1. Create a HuggingFace account at [huggingface.co](https://huggingface.co)
+2. Request access to [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base)
+3. Generate an access token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
 
 ### Using uv (Recommended)
 
 ```bash
-# Add to your project
-uv add sam-audio-infer --path /path/to/sam-audio-infer
+# Clone and install
+git clone https://github.com/your-username/sam-audio-infer.git
+cd sam-audio-infer
+uv sync
 
-# Or install from git (when published)
-uv add git+https://github.com/your-username/sam-audio-infer.git
+# Or add to existing project
+uv add sam-audio-infer --path /path/to/sam-audio-infer
 ```
 
 ### Using pip
@@ -102,103 +57,468 @@ cd sam-audio-infer
 pip install -e .
 ```
 
+---
+
 ## Quick Start
+
+### Environment Setup
+
+Create a `.env` file with your HuggingFace token:
+
+```bash
+# Required for model download
+HF_TOKEN=hf_your_token_here
+
+# Optional: Custom cache directory (default: ~/.cache/sam-audio-infer)
+SAM_AUDIO_CACHE_DIR=/path/to/cache
+```
 
 ### Python API
 
 ```python
 from sam_audio_infer import SamAudioInfer
 
-# Load model with lite mode (recommended, ~4-5 GB)
+# Load model with lite mode (recommended, ~5 GB VRAM)
 model = SamAudioInfer.from_pretrained(
     "base",              # Model size: "small", "base", or "large"
     lite_mode=True,      # Remove unused components (~40% VRAM savings)
     dtype="bfloat16",    # Mixed precision (~50% additional savings)
 )
 
-# Separate vocals
+# Separate audio
 result = model.separate("song.wav", description="vocals")
 result.save("vocals.wav", "accompaniment.wav")
 
-# Separate multiple stems
-results = model.separate_batch(
-    "song.wav",
-    descriptions=["vocals", "drums", "bass", "other"]
-)
-```
-
-#### Optional Features for Better Quality
-
-```python
-# With Text Ranker for improved quality (~6-7 GB)
-# Generates multiple candidates and selects the best one
-model = SamAudioInfer.from_pretrained(
-    "base",
-    lite_mode=True,
-    enable_text_ranker=True,     # Keep text ranker
-    reranking_candidates=5,       # Generate 5 candidates (higher = better but slower)
-)
-
-# With Span Predictor for time segment detection (~6-7 GB)
-# Automatically predicts where the target sound occurs
-model = SamAudioInfer.from_pretrained(
-    "base",
-    lite_mode=True,
-    enable_span_predictor=True,   # Keep span predictor
-)
-
-# With both features for best quality (~8-9 GB)
-model = SamAudioInfer.from_pretrained(
-    "base",
-    lite_mode=True,
-    enable_text_ranker=True,
-    enable_span_predictor=True,
-    reranking_candidates=5,
-)
-```
-
-#### Using LiteModelConfig for Full Control
-
-```python
-from sam_audio_infer import SamAudioInfer, LiteModelConfig
-
-# Pre-built configurations
-config = LiteModelConfig.aggressive()        # Most VRAM efficient
-config = LiteModelConfig.with_text_ranker(reranking_candidates=5)
-config = LiteModelConfig.with_span_predictor()
-config = LiteModelConfig.with_all_features(reranking_candidates=3)
-
-# Custom configuration
-config = LiteModelConfig(
-    remove_vision_encoder=True,   # Always remove for audio-only
-    remove_visual_ranker=True,    # Always remove for audio-only
-    remove_text_ranker=False,     # Keep for quality
-    remove_span_predictor=True,   # Remove to save VRAM
-    reranking_candidates=5,
-    predict_spans=False,
-)
-
-model = SamAudioInfer.from_pretrained("base", lite_config=config)
+print(f"Processing time: {result.processing_time:.1f}s")
+print(f"Sample rate: {result.sample_rate} Hz")  # 48000 Hz
 ```
 
 ### Command Line
 
 ```bash
-# Basic usage
-sam-audio-infer input.wav --description "vocals" --output vocals.wav
+# Basic separation
+sam-audio-infer separate song.wav -d "vocals" -o vocals.wav
 
-# Use large model for better quality
-sam-audio-infer input.wav -d "vocals" -o vocals.wav --model large
+# With residual output
+sam-audio-infer separate song.wav -d "drums" -o drums.wav --residual other.wav
 
-# With all options
-sam-audio-infer input.wav \
-    --description "drums" \
-    --output drums.wav \
-    --model large \
-    --lite \
-    --dtype bfloat16 \
-    --verbose
+# Verbose output
+sam-audio-infer separate song.wav -d "piano" -o piano.wav -v
 ```
+
+---
+
+## Model Download & Caching
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SAM_AUDIO_CACHE_DIR` | Model cache directory | `~/.cache/sam-audio-infer` |
+| `HF_TOKEN` | HuggingFace API token | None |
+| `HUGGINGFACE_TOKEN` | Alternative HF token | None |
+
+### Download Models
+
+#### Using CLI
+
+```bash
+# Download base model
+sam-audio-infer download --model base
+
+# Download to custom directory
+sam-audio-infer download --model base --cache-dir /models/sam-audio
+
+# Download and warmup (recommended for production)
+sam-audio-infer download --model base --warmup
+
+# Download with warmup settings
+sam-audio-infer download --model base --warmup --warmup-duration 2.0
+
+# Also download the judge model (for quality assessment)
+sam-audio-infer download --model base --include-judge
+```
+
+#### Using Python
+
+```python
+from sam_audio_infer import download_model, download_and_warmup, warmup_model
+
+# Download only
+download_model("base")
+
+# Download to custom directory
+download_model("base", cache_dir="/models/sam-audio")
+
+# Download, load, and warmup (recommended for production)
+model = download_and_warmup(
+    model_size="base",
+    lite_mode=True,
+    warmup_duration=1.0,  # seconds of dummy audio to process
+)
+
+# Warmup existing model
+from sam_audio_infer import SamAudioInfer
+model = SamAudioInfer.from_pretrained("base")
+warmup_model(model, duration_seconds=1.0)
+```
+
+### Manage Cache
+
+#### List Cached Models
+
+```bash
+sam-audio-infer list
+```
+
+```python
+from sam_audio_infer import list_cached_models
+
+for model in list_cached_models():
+    print(f"{model['model_id']}: {model['size_gb']:.2f} GB")
+```
+
+#### Clear Cache
+
+```bash
+# Clear specific model
+sam-audio-infer clear --model base
+
+# Clear all models
+sam-audio-infer clear -y
+
+# Clear from custom directory
+sam-audio-infer clear --cache-dir /models/sam-audio -y
+```
+
+```python
+from sam_audio_infer import clear_cache
+
+clear_cache(model_size="base")  # Clear specific model
+clear_cache()  # Clear all models
+```
+
+---
+
+## CLI Reference
+
+### Commands Overview
+
+```bash
+sam-audio-infer --help
+```
+
+| Command | Description |
+|---------|-------------|
+| `separate` | Separate audio based on text description |
+| `download` | Download and cache model files |
+| `list` | List cached models |
+| `clear` | Clear cached models |
+
+### separate
+
+Separate audio based on text description.
+
+```bash
+sam-audio-infer separate <input> -d <description> -o <output> [options]
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `<input>` | Input audio file | Required |
+| `-d, --description` | What to extract (e.g., "vocals") | Required |
+| `-o, --output` | Output file path | Required |
+| `--residual` | Output path for residual audio | None |
+| `--model` | Model size: small, base, large | base |
+| `--lite / --no-lite` | Enable/disable lite mode | enabled |
+| `--dtype` | float32, float16, bfloat16 | bfloat16 |
+| `--device` | cuda, cpu, mps | cuda |
+| `--chunk-duration` | Chunk size in seconds | 25.0 |
+| `--cache-dir` | Model cache directory | env/default |
+| `--hf-token` | HuggingFace token | env |
+| `--warmup` | Run warmup before processing | False |
+| `-v, --verbose` | Verbose output | False |
+
+**Examples:**
+
+```bash
+# Basic usage
+sam-audio-infer separate song.wav -d "vocals" -o vocals.wav
+
+# Extract drums with residual
+sam-audio-infer separate song.wav -d "drums" -o drums.wav --residual other.wav
+
+# Use large model with warmup
+sam-audio-infer separate song.wav -d "bass" -o bass.wav --model large --warmup -v
+
+# Custom cache directory
+sam-audio-infer separate song.wav -d "piano" -o piano.wav --cache-dir /models
+```
+
+### download
+
+Download and cache model files.
+
+```bash
+sam-audio-infer download [options]
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--model` | Model size: small, base, large | base |
+| `--cache-dir` | Cache directory | env/default |
+| `--hf-token` | HuggingFace token | env |
+| `--warmup` | Also run warmup inference | False |
+| `--warmup-duration` | Warmup audio duration (seconds) | 1.0 |
+| `--no-lite` | Disable lite mode for warmup | False |
+| `--device` | Device for warmup | cuda |
+| `--dtype` | Data type for warmup | bfloat16 |
+| `--include-judge` | Also download judge model | False |
+
+**Examples:**
+
+```bash
+# Download base model
+sam-audio-infer download --model base
+
+# Download and warmup for production deployment
+sam-audio-infer download --model base --warmup
+
+# Download all sizes
+sam-audio-infer download --model small
+sam-audio-infer download --model base
+sam-audio-infer download --model large
+```
+
+### list
+
+List cached models.
+
+```bash
+sam-audio-infer list [--cache-dir DIR]
+```
+
+### clear
+
+Clear cached models.
+
+```bash
+sam-audio-infer clear [options]
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--model` | Specific model to clear | all |
+| `--cache-dir` | Cache directory | env/default |
+| `-y, --yes` | Skip confirmation | False |
+
+---
+
+## Python API
+
+### SamAudioInfer
+
+Main class for audio separation.
+
+```python
+from sam_audio_infer import SamAudioInfer
+
+# Load model
+model = SamAudioInfer.from_pretrained(
+    model_name_or_path="base",  # "small", "base", "large", or HuggingFace ID
+    lite_mode=True,             # Remove unused components
+    lite_config=None,           # Custom LiteModelConfig (overrides lite params)
+    enable_text_ranker=False,   # Keep text ranker (+~2GB VRAM)
+    enable_span_predictor=False,# Keep span predictor (+~1-2GB VRAM)
+    reranking_candidates=3,     # Candidates for text ranker
+    device="cuda",              # "cuda", "cpu", "mps"
+    dtype="bfloat16",           # "float32", "float16", "bfloat16"
+    chunk_duration=25.0,        # Default chunk size (seconds)
+    hf_token=None,              # HuggingFace token (or use env)
+    cache_dir=None,             # Cache directory (or use env)
+    verbose=True,               # Print loading progress
+)
+
+# Properties
+model.sample_rate  # 48000
+model.device       # "cuda"
+model.dtype        # "bfloat16"
+model.is_lite      # True
+
+# Separate single audio
+result = model.separate(
+    audio="song.wav",           # Path, numpy array, or torch tensor
+    description="vocals",       # What to extract
+    chunk_duration=None,        # Override default chunk size
+    cleanup_between_chunks=True,
+    verbose=False,
+)
+
+# Separate multiple stems
+results = model.separate_batch(
+    audio="song.wav",
+    descriptions=["vocals", "drums", "bass", "other"],
+    verbose=False,
+)
+
+# Move to different device
+model.to("cpu")
+
+# Unload model
+model.unload()
+```
+
+### SeparationResult
+
+Result from audio separation.
+
+```python
+result = model.separate("song.wav", "vocals")
+
+# Properties
+result.target           # torch.Tensor - extracted audio
+result.residual         # torch.Tensor - remaining audio
+result.sample_rate      # 48000
+result.description      # "vocals"
+result.processing_time  # seconds
+result.num_chunks       # number of chunks processed
+
+# Save to files
+result.save("vocals.wav", "accompaniment.wav")
+result.save("vocals.wav")  # Only save target
+```
+
+### Download Functions
+
+```python
+from sam_audio_infer import (
+    download_model,
+    download_and_warmup,
+    warmup_model,
+    get_cache_dir,
+    list_cached_models,
+    clear_cache,
+)
+
+# Get cache directory (from env or default)
+cache_dir = get_cache_dir()  # Path object
+
+# Download model files
+download_model(
+    model_size="base",      # "small", "base", "large"
+    cache_dir=None,         # Use env/default
+    hf_token=None,          # Use env
+    include_judge=False,    # Also download judge model
+    verbose=True,
+)
+
+# Download, load, and warmup
+model = download_and_warmup(
+    model_size="base",
+    lite_mode=True,
+    device="cuda",
+    dtype="bfloat16",
+    cache_dir=None,
+    hf_token=None,
+    warmup_duration=1.0,
+    verbose=True,
+)
+
+# Warmup existing model
+warmup_time = warmup_model(
+    model,                  # SamAudioInfer instance
+    duration_seconds=1.0,
+    verbose=True,
+)
+
+# List cached models
+models = list_cached_models(cache_dir=None)
+# Returns: [{"model_id": "facebook/sam-audio-base", "size_gb": 7.19, ...}]
+
+# Clear cache
+clear_cache(cache_dir=None, model_size=None, verbose=True)
+```
+
+### LiteModelConfig
+
+Configure which components to remove/keep.
+
+```python
+from sam_audio_infer import LiteModelConfig
+
+# Pre-built configurations
+config = LiteModelConfig.aggressive()        # ~4-5 GB - maximum savings
+config = LiteModelConfig.with_text_ranker(reranking_candidates=5)  # ~6-7 GB
+config = LiteModelConfig.with_span_predictor()  # ~6-7 GB
+config = LiteModelConfig.with_all_features(reranking_candidates=3)  # ~8-9 GB
+
+# Custom configuration
+config = LiteModelConfig(
+    remove_vision_encoder=True,   # Always True for audio-only
+    remove_visual_ranker=True,    # Always True for audio-only
+    remove_text_ranker=False,     # Keep for quality
+    remove_span_predictor=True,   # Remove to save VRAM
+    reranking_candidates=5,       # Number of candidates
+    predict_spans=False,
+)
+
+# Use with model
+model = SamAudioInfer.from_pretrained("base", lite_config=config)
+```
+
+### Memory Management
+
+```python
+from sam_audio_infer import (
+    cleanup_gpu_memory,
+    get_gpu_memory_info,
+    GPUMemoryInfo,
+    MemoryTracker,
+)
+
+# Get GPU memory info
+info = get_gpu_memory_info()
+print(f"Total: {info.total_gb:.1f} GB")
+print(f"Allocated: {info.allocated_gb:.1f} GB")
+print(f"Free: {info.free_gb:.1f} GB")
+
+# Track memory during operations
+with MemoryTracker("Separation"):
+    result = model.separate("song.wav", "vocals")
+
+# Manual cleanup
+cleanup_gpu_memory()
+```
+
+---
+
+## Configuration
+
+### Available Models
+
+| Model | HuggingFace ID | VRAM (Lite) | Use Case |
+|-------|----------------|-------------|----------|
+| `small` | `facebook/sam-audio-small` | **~4 GB** | Fast inference, limited VRAM |
+| `base` | `facebook/sam-audio-base` | **~5 GB** | **Recommended** for most use cases |
+| `large` | `facebook/sam-audio-large` | **~7 GB** | Best quality |
+
+### VRAM by Configuration (Base Model + bfloat16)
+
+| Configuration | VRAM | Features |
+|--------------|------|----------|
+| `LiteModelConfig.aggressive()` | ~4-5 GB | Basic separation |
+| `LiteModelConfig.with_text_ranker()` | ~6-7 GB | + Quality reranking |
+| `LiteModelConfig.with_span_predictor()` | ~6-7 GB | + Time segments |
+| `LiteModelConfig.with_all_features()` | ~8-9 GB | + Both features |
+
+### Quality Scores (Subjective 1-5)
+
+| Category | Small | Base | Large |
+|----------|-------|------|-------|
+| General SFX | 3.62 | 3.28 | 3.50 |
+| Speech | 3.99 | **4.25** | 4.03 |
+| Music | 4.11 | 3.87 | **4.22** |
+| Instruments (pro) | 4.24 | 4.27 | **4.49** |
 
 ---
 
@@ -212,111 +532,53 @@ SAM-Audio is a multimodal model designed for both audio AND video inputs. For au
 ┌─────────────────────────────────────────────────────────────────┐
 │                    SAM-Audio Architecture                        │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐  │
-│  │  Audio Encoder   │  │  Vision Encoder  │  │ Text Encoder │  │
-│  │                  │  │                  │  │              │  │
-│  │  (REQUIRED)      │  │  (~2GB) ❌       │  │ (REQUIRED)   │  │
-│  └────────┬─────────┘  └────────┬─────────┘  └──────┬───────┘  │
-│           │                     │                    │          │
-│           └──────────┬──────────┴────────────────────┘          │
-│                      ▼                                          │
-│           ┌──────────────────────┐                              │
-│           │   Fusion / Decoder   │                              │
-│           │      (REQUIRED)      │                              │
-│           └──────────┬───────────┘                              │
-│                      │                                          │
-│    ┌─────────────────┼─────────────────┐                        │
-│    ▼                 ▼                 ▼                        │
-│  ┌──────────┐  ┌──────────────┐  ┌──────────────┐               │
-│  │ Visual   │  │    Text      │  │    Span      │               │
-│  │ Ranker   │  │   Ranker     │  │  Predictor   │               │
-│  │ (~2GB) ❌ │  │  (~2GB) ❌   │  │ (~1-2GB) ❌  │               │
-│  └──────────┘  └──────────────┘  └──────────────┘               │
-│                                                                 │
-│  ❌ = Removed in Lite Mode (not needed for audio-only)          │
-└─────────────────────────────────────────────────────────────────┘
+│                                                                  │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐   │
+│  │  Audio Encoder   │  │  Vision Encoder  │  │ Text Encoder │   │
+│  │                  │  │                  │  │              │   │
+│  │  (REQUIRED)      │  │  (~2GB) ❌       │  │ (REQUIRED)   │   │
+│  └────────┬─────────┘  └────────┬─────────┘  └──────┬───────┘   │
+│           │                     │                    │           │
+│           └──────────┬──────────┴────────────────────┘           │
+│                      ▼                                           │
+│           ┌──────────────────────┐                               │
+│           │   Fusion / Decoder   │                               │
+│           │      (REQUIRED)      │                               │
+│           └──────────┬───────────┘                               │
+│                      │                                           │
+│    ┌─────────────────┼─────────────────┐                         │
+│    ▼                 ▼                 ▼                         │
+│  ┌──────────┐  ┌──────────────┐  ┌──────────────┐                │
+│  │ Visual   │  │    Text      │  │    Span      │                │
+│  │ Ranker   │  │   Ranker     │  │  Predictor   │                │
+│  │ (~2GB) ❌ │  │  (~2GB) ⚠️   │  │ (~1-2GB) ⚠️  │                │
+│  └──────────┘  └──────────────┘  └──────────────┘                │
+│                                                                  │
+│  ❌ = Always removed (not needed for audio-only)                 │
+│  ⚠️ = Optionally kept (improves quality)                         │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Optimization Techniques
 
-We apply **5 key optimizations** to reduce VRAM by 60-65%:
-
-#### 1. Lite Mode - Component Removal (~40% savings)
+#### 1. Lite Mode (~40% VRAM savings)
 
 Remove unused components for audio-only tasks:
 
-| Component | VRAM Saved | Function | Recommendation |
-|-----------|------------|----------|----------------|
-| `vision_encoder` | ~2 GB | Video input processing | **Always remove** (audio-only) |
-| `visual_ranker` | ~2 GB | Visual quality ranking | **Always remove** (audio-only) |
-| `text_ranker` | ~2 GB | Candidate reranking | Optional (improves quality) |
-| `span_predictor` | ~1-2 GB | Time segment detection | Optional (locates sounds) |
+| Component | VRAM Saved | Removed by Default |
+|-----------|------------|-------------------|
+| `vision_encoder` | ~2 GB | ✅ Always |
+| `visual_ranker` | ~2 GB | ✅ Always |
+| `text_ranker` | ~2 GB | ✅ (optional keep) |
+| `span_predictor` | ~1-2 GB | ✅ (optional keep) |
 
-##### Text Ranker (Optional, +~2 GB)
-
-The text ranker improves separation quality by:
-1. Generating multiple separation candidates (`reranking_candidates`)
-2. Scoring each using CLAP (audio-text similarity) and Judge models
-3. Selecting the best result
-
-```python
-# Enable text ranker for better quality
-model = SamAudioInfer.from_pretrained(
-    "base",
-    lite_mode=True,
-    enable_text_ranker=True,
-    reranking_candidates=5,  # Higher = better quality, slower
-)
-```
-
-##### Span Predictor (Optional, +~1-2 GB)
-
-The span predictor automatically identifies **when** the target sound occurs:
-1. Predicts time segments where the target sound is present
-2. Focuses separation on those segments
-3. Especially useful for non-ambient sounds (e.g., "horn honking", "dog barking")
-
-```python
-# Enable span predictor for time-aware separation
-model = SamAudioInfer.from_pretrained(
-    "base",
-    lite_mode=True,
-    enable_span_predictor=True,
-)
-```
-
-##### Configuration Presets
-
-```python
-from sam_audio_infer import LiteModelConfig
-
-# Aggressive - Maximum VRAM savings (~4-5 GB)
-config = LiteModelConfig.aggressive()
-
-# With Text Ranker - Better quality (~6-7 GB)
-config = LiteModelConfig.with_text_ranker(reranking_candidates=5)
-
-# With Span Predictor - Time-aware (~6-7 GB)
-config = LiteModelConfig.with_span_predictor()
-
-# With All Features - Best quality (~8-9 GB)
-config = LiteModelConfig.with_all_features(reranking_candidates=5)
-
-model = SamAudioInfer.from_pretrained("base", lite_config=config)
-```
-
-#### 2. Mixed Precision - bfloat16 (~50% additional savings)
+#### 2. Mixed Precision (~50% additional savings)
 
 | Precision | VRAM Usage | Quality |
 |-----------|------------|---------|
 | float32 | 100% | Best |
 | float16 | ~50% | Good (can be unstable) |
 | **bfloat16** | **~50%** | **Excellent** (recommended) |
-
-```python
-model = SamAudioInfer.from_pretrained("base", dtype="bfloat16")
-```
 
 #### 3. Audio Chunking
 
@@ -330,28 +592,17 @@ result = model.separate("long_song.wav", description="vocals")
 result = model.separate("long_song.wav", "vocals", chunk_duration=30.0)
 ```
 
-#### 4. Memory Management
+#### 4. Warmup (First Prediction Caching)
+
+The first inference is slower due to CUDA kernel compilation. Warmup pre-compiles these:
 
 ```python
-from sam_audio_infer import cleanup_gpu_memory, get_gpu_memory_info, MemoryTracker
+from sam_audio_infer import warmup_model
 
-# Check GPU memory
-info = get_gpu_memory_info()
-print(f"Available: {info.free_gb:.1f} GB")
-
-# Track memory during operations
-with MemoryTracker("Separation"):
-    result = model.separate("song.wav", "vocals")
-
-# Manual cleanup
-cleanup_gpu_memory()
+# After loading model
+warmup_model(model, duration_seconds=1.0)
+# Subsequent inferences will be faster
 ```
-
-#### 5. Inference Optimizations
-
-- `torch.inference_mode()` - Disable gradient computation
-- `predict_spans=False` - Skip span prediction
-- `reranking_candidates=1` - Don't rerank results
 
 ---
 
@@ -365,14 +616,6 @@ cleanup_gpu_memory()
 | Base | ~13 GB | **~5 GB** | **62%** |
 | Large | ~20 GB | **~7 GB** | **65%** |
 
-### Processing Speed (RTX 4090, 4:26 audio)
-
-| Model | First Run | Cached | Realtime Factor |
-|-------|-----------|--------|-----------------|
-| Small | ~78s | ~25s | ~10x |
-| Base | ~100s | ~29s | ~9x |
-| Large | ~130s | ~41s | ~6.5x |
-
 ### GPU Compatibility
 
 | GPU | VRAM | Small | Base | Large |
@@ -383,85 +626,7 @@ cleanup_gpu_memory()
 | RTX 4070 | 12 GB | ✅ | ✅ | ✅ |
 | RTX 4090 | 24 GB | ✅ | ✅ | ✅ |
 
-✅ Comfortable | ⚠️ Tight (smaller chunks) | ❌ Not recommended
-
----
-
-## API Reference
-
-### SamAudioInfer
-
-```python
-class SamAudioInfer:
-    @classmethod
-    def from_pretrained(
-        model_name_or_path: str,  # "small", "base", "large", or HuggingFace ID
-        lite_mode: bool = True,
-        lite_config: LiteModelConfig = None,  # Custom config (overrides below)
-        enable_text_ranker: bool = False,     # Keep for better quality (+~2GB)
-        enable_span_predictor: bool = False,  # Keep for time segments (+~1-2GB)
-        reranking_candidates: int = 3,        # Candidates for text ranker
-        device: str = "cuda",
-        dtype: str = "bfloat16",
-        chunk_duration: float = 25.0,
-        hf_token: str = None,                 # Or set HF_TOKEN in .env
-        verbose: bool = True,
-    ) -> SamAudioInfer: ...
-
-    def separate(
-        audio: AudioInput,
-        description: str,
-        chunk_duration: float = None,
-        verbose: bool = False,
-    ) -> SeparationResult: ...
-
-    def separate_batch(
-        audio: AudioInput,
-        descriptions: list[str],
-        verbose: bool = False,
-    ) -> list[SeparationResult]: ...
-```
-
-### LiteModelConfig
-
-```python
-@dataclass
-class LiteModelConfig:
-    # Components to remove
-    remove_vision_encoder: bool = True   # Always True for audio-only
-    remove_visual_ranker: bool = True    # Always True for audio-only
-    remove_text_ranker: bool = True      # False to keep for quality
-    remove_span_predictor: bool = True   # False to keep for time segments
-
-    # Inference settings
-    predict_spans: bool = False          # True when using span predictor
-    reranking_candidates: int = 1        # >1 when using text ranker
-
-    # Class methods for common configurations
-    @classmethod
-    def aggressive(cls) -> LiteModelConfig: ...       # ~4-5 GB
-    @classmethod
-    def with_text_ranker(cls, reranking_candidates=3) -> LiteModelConfig: ...  # ~6-7 GB
-    @classmethod
-    def with_span_predictor(cls) -> LiteModelConfig: ...  # ~6-7 GB
-    @classmethod
-    def with_all_features(cls, reranking_candidates=3) -> LiteModelConfig: ...  # ~8-9 GB
-```
-
-### SeparationResult
-
-```python
-@dataclass
-class SeparationResult:
-    target: torch.Tensor      # Extracted audio
-    residual: torch.Tensor    # Remaining audio
-    sample_rate: int
-    description: str
-    processing_time: float
-    num_chunks: int
-
-    def save(target_path: str, residual_path: str = None) -> None: ...
-```
+✅ Comfortable | ⚠️ Tight (use smaller chunks) | ❌ Not recommended
 
 ---
 
@@ -475,6 +640,37 @@ class SeparationResult:
 
 ---
 
+## Troubleshooting
+
+### Common Issues
+
+**Model download fails:**
+```bash
+# Check your HuggingFace token
+echo $HF_TOKEN
+
+# Or set it explicitly
+export HF_TOKEN=hf_your_token_here
+```
+
+**Out of memory:**
+```python
+# Use smaller chunks
+result = model.separate("song.wav", "vocals", chunk_duration=15.0)
+
+# Or use smaller model
+model = SamAudioInfer.from_pretrained("small", lite_mode=True)
+```
+
+**Slow first inference:**
+```python
+# Use warmup
+from sam_audio_infer import warmup_model
+warmup_model(model, duration_seconds=1.0)
+```
+
+---
+
 ## Acknowledgments
 
 ### SAM-Audio (Meta AI / Facebook Research)
@@ -484,24 +680,11 @@ This package is built upon **SAM-Audio** (Segment Anything for Audio), developed
 - **Repository**: [github.com/facebookresearch/sam-audio](https://github.com/facebookresearch/sam-audio)
 - **Paper**: *Segment Anything for Audio*
 
-We express our sincere gratitude to the Meta AI team for open-sourcing this powerful model.
-
 ### AudioGhost AI
 
 The **Lite Mode optimization technique** - the core innovation that reduces VRAM by ~40% - was pioneered in the **AudioGhost AI** project.
 
 - **Key Innovation**: Discovery that SAM-Audio's vision encoder, rankers, and span predictor can be safely removed for audio-only separation tasks
-- **Techniques Contributed**:
-  - Component removal strategy
-  - Memory management patterns
-  - Chunking implementation for long audio
-
-We acknowledge and thank the AudioGhost AI developers for their groundbreaking optimization work that made consumer-GPU deployment possible.
-
-### Technical References
-
-1. **Mixed Precision Training** - Micikevicius et al., 2018
-2. **PyTorch Memory Management** - [pytorch.org/docs/stable/notes/cuda.html](https://pytorch.org/docs/stable/notes/cuda.html)
 
 ---
 
