@@ -42,21 +42,18 @@ uv sync
 
 **HuggingFace Access Required**: SAM-Audio models are gated.
 
-1. Create a HuggingFace account at [huggingface.co](https://huggingface.co)
-2. Request access to [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base)
-3. Generate an access token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+1. Request access to the model checkpoints:
+   - [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base)
+   - [facebook/sam-audio-large](https://huggingface.co/facebook/sam-audio-large)
+2. Once accepted, authenticate with HuggingFace:
+   ```bash
+   # Generate token at https://huggingface.co/settings/tokens
+   huggingface-cli login
+   # Or set environment variable
+   export HF_TOKEN=hf_your_token_here
+   ```
 
 ## Quick Start
-
-### Environment Setup
-
-```bash
-# Required for model download
-export HF_TOKEN=hf_your_token_here
-
-# Optional: Custom cache directory
-export SAM_AUDIO_CACHE_DIR=/path/to/cache
-```
 
 ### Python API
 

@@ -4,18 +4,25 @@
 
 ### Model download fails
 
-```bash
-# Check your HuggingFace token
-echo $HF_TOKEN
+SAM-Audio models are gated and require access approval.
 
-# Or set it explicitly
-export HF_TOKEN=hf_your_token_here
-```
+1. Request access to the model checkpoints:
+   - [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base)
+   - [facebook/sam-audio-large](https://huggingface.co/facebook/sam-audio-large)
 
-Make sure you have:
-1. Created a HuggingFace account at [huggingface.co](https://huggingface.co)
-2. Requested access to [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base)
-3. Generated an access token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+2. Once accepted, authenticate with HuggingFace:
+   ```bash
+   # Option 1: CLI login (recommended)
+   huggingface-cli login
+
+   # Option 2: Environment variable
+   export HF_TOKEN=hf_your_token_here
+   ```
+
+3. Verify authentication:
+   ```bash
+   huggingface-cli whoami
+   ```
 
 ### Out of memory (OOM)
 
