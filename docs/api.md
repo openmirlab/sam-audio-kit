@@ -10,13 +10,10 @@ from sam_audio_infer import SamAudioInfer
 # Load model
 model = SamAudioInfer.from_pretrained(
     model_name_or_path="base",  # "small", "base", "large", or HuggingFace ID
-    lite_mode=True,             # Remove unused components
-    lite_config=None,           # Custom LiteModelConfig (overrides lite params)
-    enable_text_ranker=False,   # Keep text ranker (+~2GB VRAM)
-    enable_span_predictor=False,# Keep span predictor (+~1-2GB VRAM)
-    reranking_candidates=3,     # Candidates for text ranker
-    device="cuda",              # "cuda", "cpu", "mps"
     dtype="bfloat16",           # "float32", "float16", "bfloat16"
+    enable_text_ranker=False,   # Enable text ranker (+~3GB VRAM)
+    enable_span_predictor=False,# Enable span predictor (+~3GB VRAM)
+    device="cuda",              # "cuda", "cpu", "mps"
     chunk_duration=25.0,        # Default chunk size (seconds)
     hf_token=None,              # HuggingFace token (or use env)
     cache_dir=None,             # Cache directory (or use env)
@@ -27,7 +24,6 @@ model = SamAudioInfer.from_pretrained(
 model.sample_rate  # 48000
 model.device       # "cuda"
 model.dtype        # "bfloat16"
-model.is_lite      # True
 
 # Separate single audio
 result = model.separate(
@@ -72,33 +68,6 @@ result.save("vocals.wav", "accompaniment.wav")
 result.save("vocals.wav")  # Only save target
 ```
 
-## LiteModelConfig
-
-Configure which components to remove/keep.
-
-```python
-from sam_audio_infer import LiteModelConfig
-
-# Pre-built configurations
-config = LiteModelConfig.aggressive()        # ~4-5 GB - maximum savings
-config = LiteModelConfig.with_text_ranker(reranking_candidates=5)  # ~6-7 GB
-config = LiteModelConfig.with_span_predictor()  # ~6-7 GB
-config = LiteModelConfig.with_all_features(reranking_candidates=3)  # ~8-9 GB
-
-# Custom configuration
-config = LiteModelConfig(
-    remove_vision_encoder=True,   # Always True for audio-only
-    remove_visual_ranker=True,    # Always True for audio-only
-    remove_text_ranker=False,     # Keep for quality
-    remove_span_predictor=True,   # Remove to save VRAM
-    reranking_candidates=5,       # Number of candidates
-    predict_spans=False,
-)
-
-# Use with model
-model = SamAudioInfer.from_pretrained("base", lite_config=config)
-```
-
 ## Download Functions
 
 ```python
@@ -126,7 +95,6 @@ download_model(
 # Download, load, and warmup
 model = download_and_warmup(
     model_size="base",
-    lite_mode=True,
     device="cuda",
     dtype="bfloat16",
     cache_dir=None,

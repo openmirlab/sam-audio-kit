@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sam-audio-infer"
-version = "0.1.0"
+version = "0.1.1"
 description = "Optimized inference package for Meta's SAM-Audio model with VRAM-efficient lite mode"
 readme = "README.md"
 license = "MIT"

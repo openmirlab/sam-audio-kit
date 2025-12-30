@@ -42,16 +42,16 @@ class SamAudioInfer:
     support for VRAM optimization, chunking, and memory management.
 
     Example:
-        >>> # Basic usage
-        >>> model = SamAudioInfer.from_pretrained("facebook/sam-audio-base")
+        >>> # Basic usage (recommended, ~3 GB VRAM)
+        >>> model = SamAudioInfer.from_pretrained("base", dtype="bfloat16")
         >>> result = model.separate("audio.wav", description="vocals")
         >>> result.save("vocals.wav", "accompaniment.wav")
 
-        >>> # Lite mode for reduced VRAM
+        >>> # With text ranker for better quality (+3 GB VRAM)
         >>> model = SamAudioInfer.from_pretrained(
-        ...     "facebook/sam-audio-base",
-        ...     lite_mode=True,
+        ...     "base",
         ...     dtype="bfloat16",
+        ...     enable_text_ranker=True,
         ... )
 
         >>> # With automatic chunking for long audio
@@ -68,7 +68,6 @@ class SamAudioInfer:
         processor: Any,
         device: DeviceType = "cuda",
         dtype: DType = "bfloat16",
-        lite_mode: bool = False,
         chunk_duration: float = 25.0,
     ):
         """
@@ -79,14 +78,12 @@ class SamAudioInfer:
             processor: SAM-Audio processor instance
             device: Device to run inference on
             dtype: Data type for inference
-            lite_mode: Whether the model is in lite mode
             chunk_duration: Default chunk duration for long audio
         """
         self._model = model
         self._processor = processor
         self._device = device
         self._dtype = dtype
-        self._lite_mode = lite_mode
         self._chunk_duration = chunk_duration
 
         # Move model to device
@@ -98,15 +95,12 @@ class SamAudioInfer:
     def from_pretrained(
         cls,
         model_name_or_path: Union[str, ModelSize],
-        lite_mode: bool = True,
-        lite_config: Optional[LiteModelConfig] = None,
+        dtype: DType = "bfloat16",
         enable_text_ranker: bool = False,
         enable_span_predictor: bool = False,
-        reranking_candidates: int = 3,
         device: DeviceType = "cuda",
-        dtype: DType = "bfloat16",
-        precision_config: Optional["PrecisionConfig"] = None,
         chunk_duration: float = 25.0,
+        precision_config: Optional["PrecisionConfig"] = None,
         hf_token: Optional[str] = None,
         cache_dir: Optional[Union[str, Path]] = None,
         verbose: bool = True,
@@ -117,19 +111,16 @@ class SamAudioInfer:
         Args:
             model_name_or_path: Model size ("small", "base", "large"),
                 HuggingFace model ID, or local path
-            lite_mode: Enable lite mode for reduced VRAM usage
-            lite_config: Custom lite mode configuration (overrides other lite settings)
-            enable_text_ranker: Keep text ranker for better quality (adds ~2GB VRAM)
-            enable_span_predictor: Keep span predictor for time segments (adds ~1-2GB VRAM)
-            reranking_candidates: Number of candidates for text ranker (default 3)
-            device: Device to run inference on ("cuda", "cpu", "mps")
             dtype: Data type ("float32", "float16", "bfloat16")
+            enable_text_ranker: Enable text ranker for better quality (+~3GB VRAM)
+            enable_span_predictor: Enable span predictor for time segments (+~3GB VRAM)
+            device: Device to run inference on ("cuda", "cpu", "mps")
+            chunk_duration: Default chunk duration for long audio (seconds)
             precision_config: PrecisionConfig for fine-grained control over:
                 - matmul_precision: "highest", "high", or "medium"
                 - allow_tf32: Enable TF32 (~3x speedup on Ampere+ GPUs)
                 - cudnn_benchmark: Enable cuDNN auto-tuner
                 - cudnn_deterministic: Force reproducible results
-            chunk_duration: Default chunk duration for long audio (seconds)
             hf_token: HuggingFace API token for gated models (or set HF_TOKEN env var)
             cache_dir: Directory to cache downloaded models
             verbose: Print loading progress
@@ -138,24 +129,19 @@ class SamAudioInfer:
             SamAudioInfer instance ready for inference
 
         Example:
-            >>> # Basic lite mode (most VRAM efficient, ~4-5GB)
-            >>> model = SamAudioInfer.from_pretrained("base", lite_mode=True)
+            >>> # Basic usage (most VRAM efficient, ~3GB)
+            >>> model = SamAudioInfer.from_pretrained("base", dtype="bfloat16")
+
+            >>> # With text ranker for better quality (+3GB VRAM)
+            >>> model = SamAudioInfer.from_pretrained(
+            ...     "base",
+            ...     dtype="bfloat16",
+            ...     enable_text_ranker=True,
+            ... )
 
             >>> # With custom precision settings
             >>> from sam_audio_infer import PrecisionConfig
-            >>> config = PrecisionConfig(
-            ...     matmul_precision="medium",  # fastest
-            ...     allow_tf32=True,
-            ...     cudnn_benchmark=True,
-            ... )
-            >>> model = SamAudioInfer.from_pretrained("base", precision_config=config)
-
-            >>> # Maximum quality (disable TF32)
-            >>> config = PrecisionConfig(
-            ...     matmul_precision="highest",
-            ...     allow_tf32=False,
-            ...     cudnn_deterministic=True,
-            ... )
+            >>> config = PrecisionConfig(matmul_precision="medium")
             >>> model = SamAudioInfer.from_pretrained("base", precision_config=config)
         """
         from .download import get_cache_dir, get_hf_token
@@ -190,13 +176,18 @@ class SamAudioInfer:
             model_name = model_name_or_path
             model_size = get_model_size(model_name_or_path)
 
-        # Estimate VRAM
-        estimated_vram = estimate_vram(model_size, lite_mode, dtype)
+        # Estimate VRAM (always lite mode)
+        estimated_vram = estimate_vram(model_size, True, dtype)
+        if enable_text_ranker:
+            estimated_vram += 3.0
+        if enable_span_predictor:
+            estimated_vram += 3.0
         if verbose:
             print(f"Loading {model_name}")
             print(f"  Model size: {model_size}")
-            print(f"  Lite mode: {lite_mode}")
             print(f"  Dtype: {dtype}")
+            print(f"  Text ranker: {enable_text_ranker}")
+            print(f"  Span predictor: {enable_span_predictor}")
             print(f"  Estimated VRAM: ~{estimated_vram:.1f} GB")
 
         # Check available VRAM
@@ -232,31 +223,25 @@ class SamAudioInfer:
             model = SAMAudio.from_pretrained(model_name, **model_kwargs)
             processor = SAMAudioProcessor.from_pretrained(model_name)
 
-        # Apply lite mode optimizations
-        if lite_mode:
-            if verbose:
-                print("  Applying lite mode optimizations...")
+        # Apply lite mode optimizations (always enabled for audio-only inference)
+        if verbose:
+            print("  Applying lite mode optimizations...")
 
-            # Build lite config from convenience parameters if not explicitly provided
-            if lite_config is None:
-                if enable_text_ranker and enable_span_predictor:
-                    lite_config = LiteModelConfig.with_all_features(
-                        reranking_candidates=reranking_candidates
-                    )
-                elif enable_text_ranker:
-                    lite_config = LiteModelConfig.with_text_ranker(
-                        reranking_candidates=reranking_candidates
-                    )
-                elif enable_span_predictor:
-                    lite_config = LiteModelConfig.with_span_predictor()
-                else:
-                    lite_config = LiteModelConfig.aggressive()
+        # Build lite config based on enabled features
+        if enable_text_ranker and enable_span_predictor:
+            lite_config = LiteModelConfig.with_all_features()
+        elif enable_text_ranker:
+            lite_config = LiteModelConfig.with_text_ranker()
+        elif enable_span_predictor:
+            lite_config = LiteModelConfig.with_span_predictor()
+        else:
+            lite_config = LiteModelConfig.aggressive()
 
-            model = create_lite_model(model, lite_config)
+        model = create_lite_model(model, lite_config)
 
-            if verbose:
-                config_desc = get_config_description(lite_config)
-                print(f"    {config_desc}")
+        if verbose:
+            config_desc = get_config_description(lite_config)
+            print(f"    {config_desc}")
 
         # Create instance
         instance = cls(
@@ -264,7 +249,6 @@ class SamAudioInfer:
             processor=processor,
             device=device,
             dtype=dtype,
-            lite_mode=lite_mode,
             chunk_duration=chunk_duration,
         )
 
@@ -299,8 +283,8 @@ class SamAudioInfer:
 
     @property
     def is_lite(self) -> bool:
-        """Check if model is in lite mode."""
-        return self._lite_mode or is_lite_model(self._model)
+        """Check if model is in lite mode (always True for audio-only inference)."""
+        return is_lite_model(self._model)
 
     @property
     def sample_rate(self) -> int:

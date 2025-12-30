@@ -64,11 +64,12 @@ uv sync
 ```python
 from sam_audio_infer import SamAudioInfer
 
-# Load model with lite mode (recommended, ~3 GB VRAM)
+# Load model (recommended settings, ~3 GB VRAM)
 model = SamAudioInfer.from_pretrained(
-    "base",              # Model size: "small", "base", or "large"
-    lite_mode=True,      # Remove unused components (~40% VRAM savings)
-    dtype="bfloat16",    # Mixed precision (~50% additional savings)
+    "base",                      # Model size: "small", "base", or "large"
+    dtype="bfloat16",            # Mixed precision (~50% VRAM savings)
+    enable_text_ranker=False,    # +3 GB VRAM if enabled
+    enable_span_predictor=False, # +3 GB VRAM if enabled
 )
 
 # Separate audio

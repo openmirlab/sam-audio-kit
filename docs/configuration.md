@@ -10,12 +10,12 @@
 
 ## VRAM by Configuration (Base Model + bfloat16)
 
-| Configuration | VRAM | Features |
-|--------------|------|----------|
-| `LiteModelConfig.aggressive()` | ~4-5 GB | Basic separation |
-| `LiteModelConfig.with_text_ranker()` | ~6-7 GB | + Quality reranking |
-| `LiteModelConfig.with_span_predictor()` | ~6-7 GB | + Time segments |
-| `LiteModelConfig.with_all_features()` | ~8-9 GB | + Both features |
+| text_ranker | span_predictor | VRAM | Features |
+|-------------|----------------|------|----------|
+| `False` | `False` | **~3 GB** | Basic separation (recommended) |
+| `True` | `False` | ~6 GB | + Quality reranking |
+| `False` | `True` | ~6 GB | + Time segments |
+| `True` | `True` | ~9 GB | + Both features |
 
 ## Quality Scores (Subjective 1-5)
 

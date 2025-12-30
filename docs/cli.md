@@ -28,8 +28,9 @@ sam-audio-infer separate <input> -d <description> -o <output> [options]
 | `-o, --output` | Output file path | Required |
 | `--residual` | Output path for residual audio | None |
 | `--model` | Model size: small, base, large | base |
-| `--lite / --no-lite` | Enable/disable lite mode | enabled |
 | `--dtype` | float32, float16, bfloat16 | bfloat16 |
+| `--enable-text-ranker` | Enable text ranker (+~3GB VRAM) | False |
+| `--enable-span-predictor` | Enable span predictor (+~3GB VRAM) | False |
 | `--device` | cuda, cpu, mps | cuda |
 | `--chunk-duration` | Chunk size in seconds | 25.0 |
 | `--cache-dir` | Model cache directory | env/default |
@@ -51,7 +52,7 @@ sam-audio-infer separate <input> -d <description> -o <output> [options]
 ### Examples
 
 ```bash
-# Basic usage
+# Basic usage (~3 GB VRAM)
 sam-audio-infer separate song.wav -d "vocals" -o vocals.wav
 
 # Extract drums with residual
@@ -59,6 +60,9 @@ sam-audio-infer separate song.wav -d "drums" -o drums.wav --residual other.wav
 
 # Use large model with warmup
 sam-audio-infer separate song.wav -d "bass" -o bass.wav --model large --warmup -v
+
+# Enable text ranker for better quality (+3 GB VRAM)
+sam-audio-infer separate song.wav -d "vocals" -o vocals.wav --enable-text-ranker
 
 # Fast inference
 sam-audio-infer separate audio.wav -d "vocals" -o out.wav --matmul-precision medium

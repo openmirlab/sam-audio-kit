@@ -13,9 +13,6 @@ def cmd_separate(args):
         print(f"Error: Input file not found: {args.input}", file=sys.stderr)
         sys.exit(1)
 
-    # Handle lite mode flag
-    lite_mode = args.lite and not args.no_lite
-
     # Import here to avoid slow startup
     from .model import SamAudioInfer
     from .precision import PrecisionConfig
@@ -48,11 +45,12 @@ def cmd_separate(args):
 
         model = SamAudioInfer.from_pretrained(
             args.model,
-            lite_mode=lite_mode,
-            device=args.device,
             dtype=args.dtype,
-            precision_config=precision_config,
+            enable_text_ranker=args.enable_text_ranker,
+            enable_span_predictor=args.enable_span_predictor,
+            device=args.device,
             chunk_duration=args.chunk_duration,
+            precision_config=precision_config,
             hf_token=args.hf_token,
             cache_dir=args.cache_dir,
             verbose=args.verbose,
@@ -179,7 +177,7 @@ def main():
     parser.add_argument(
         "--version",
         action="version",
-        version="sam-audio-infer 0.1.0",
+        version="sam-audio-infer 0.1.1",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -191,14 +189,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic separation
+  # Basic separation (~3 GB VRAM)
   sam-audio-infer separate input.wav -d "vocals" -o vocals.wav
 
   # With residual output
   sam-audio-infer separate input.wav -d "drums" -o drums.wav --residual other.wav
 
-  # Full quality mode
-  sam-audio-infer separate input.wav -d "piano" -o piano.wav --no-lite --dtype float32
+  # With text ranker for better quality (+3 GB VRAM)
+  sam-audio-infer separate input.wav -d "piano" -o piano.wav --enable-text-ranker
         """,
     )
     sep_parser.add_argument("input", type=str, help="Input audio file path")
@@ -228,15 +226,14 @@ Examples:
         help="Model size (default: base)",
     )
     sep_parser.add_argument(
-        "--lite",
+        "--enable-text-ranker",
         action="store_true",
-        default=True,
-        help="Enable lite mode for reduced VRAM (default: enabled)",
+        help="Enable text ranker for better quality (+~3GB VRAM)",
     )
     sep_parser.add_argument(
-        "--no-lite",
+        "--enable-span-predictor",
         action="store_true",
-        help="Disable lite mode",
+        help="Enable span predictor for time segments (+~3GB VRAM)",
     )
     sep_parser.add_argument(
         "--dtype",
