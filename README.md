@@ -4,6 +4,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+**PyPI**: https://pypi.org/project/sam-audio-infer/
+
 Inference-only package for [SAM-Audio](https://github.com/facebookresearch/sam-audio) (Segment Anything for Audio) by Meta AI.
 
 This is a lightweight, dependency-minimal repackaging focused solely on inference with VRAM-efficient lite mode. For training and the full research codebase, please visit the [original SAM-Audio repository](https://github.com/facebookresearch/sam-audio).
