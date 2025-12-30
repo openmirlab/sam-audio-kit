@@ -54,6 +54,14 @@ from .types import (
     ModelSize,
     HUGGINGFACE_RESOURCES,
 )
+from .download import (
+    download_model,
+    download_and_warmup,
+    warmup_model,
+    get_cache_dir,
+    list_cached_models,
+    clear_cache,
+)
 
 __all__ = [
     # Main class
@@ -81,4 +89,11 @@ __all__ = [
     "DType",
     "ModelSize",
     "HUGGINGFACE_RESOURCES",
+    # Download & Warmup
+    "download_model",
+    "download_and_warmup",
+    "warmup_model",
+    "get_cache_dir",
+    "list_cached_models",
+    "clear_cache",
 ]

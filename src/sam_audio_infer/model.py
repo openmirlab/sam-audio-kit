@@ -162,9 +162,15 @@ class SamAudioInfer:
             >>> config = LiteModelConfig.with_text_ranker(reranking_candidates=5)
             >>> model = SamAudioInfer.from_pretrained("base", lite_config=config)
         """
+        from .download import get_cache_dir, get_hf_token
+
         # Load HF token from environment if not provided
         if hf_token is None:
-            hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN")
+            hf_token = get_hf_token()
+
+        # Load cache dir from environment if not provided
+        if cache_dir is None:
+            cache_dir = get_cache_dir()
 
         # Resolve model name and size
         if model_name_or_path in MODEL_NAME_MAP:
