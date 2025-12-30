@@ -28,9 +28,11 @@ This is a lightweight, dependency-minimal repackaging focused solely on inferenc
 ```bash
 # Using uv (recommended)
 uv add sam-audio-infer
+uv pip install git+https://github.com/facebookresearch/sam-audio.git
 
 # Or using pip
 pip install sam-audio-infer
+pip install git+https://github.com/facebookresearch/sam-audio.git
 ```
 
 For development:
