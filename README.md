@@ -1,15 +1,18 @@
 # SAM-Audio-Infer
 
-Optimized inference package for Meta's SAM-Audio model with VRAM-efficient lite mode.
+**Inference-only** package for Meta's SAM-Audio model with VRAM-efficient lite mode.
+
+> **Note**: This package is designed exclusively for inference. All training-related code has been removed to minimize dependencies and VRAM usage.
 
 ## Features
 
-- **Lite Mode**: Reduce VRAM usage by ~40% by removing unused components
-- **Mixed Precision**: Support for bfloat16/float16 inference (~50% additional savings)
+- **Inference-Only**: Optimized for inference with `torch.inference_mode()` (no grad overhead)
+- **Lite Mode**: Reduce VRAM usage by 62-78% by removing unused components
+- **Mixed Precision**: Support for bfloat16/float16 inference
 - **48kHz Audio**: Native high-quality audio processing at 48kHz sample rate
 - **Auto-Chunking**: Process long audio files without OOM errors
 - **Model Caching**: Configurable cache directory with environment variable support
-- **Warmup Support**: Pre-compile CUDA kernels for faster inference
+- **Warmup Support**: Pre-compile CUDA kernels for faster first inference
 - **Simple API**: Easy-to-use Python API and CLI
 
 ## Table of Contents
@@ -825,11 +828,12 @@ We are grateful to AudioGhost AI for making this optimization technique availabl
 
 ### About This Package
 
-This package (`sam-audio-infer`) is a repackaging that provides:
+This package (`sam-audio-infer`) is an **inference-only** repackaging that provides:
 - Simplified Python API for inference
 - CLI interface for easy command-line usage
 - Memory management utilities
 - Configurable precision settings
+- No training code (reduced dependencies and VRAM usage)
 
 All credit for the models, algorithms, and optimization techniques belongs to the original authors.
 
