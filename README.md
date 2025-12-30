@@ -799,18 +799,39 @@ warmup_model(model, duration_seconds=1.0)
 
 ## Acknowledgments
 
-### SAM-Audio (Meta AI / Facebook Research)
+This package stands on the shoulders of two important projects. All credit for the core model and optimization techniques belongs to the original authors.
 
-This package is built upon **SAM-Audio** (Segment Anything for Audio), developed by Meta AI.
+### Original Research by Meta AI / Facebook Research
+
+**SAM-Audio** (Segment Anything for Audio) is developed by Meta AI Research.
 
 - **Repository**: [github.com/facebookresearch/sam-audio](https://github.com/facebookresearch/sam-audio)
 - **Paper**: *Segment Anything for Audio*
+- **HuggingFace**: [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base)
 
-### AudioGhost AI
+**What remains unchanged from SAM-Audio:**
+- All model architectures (100% original)
+- All separation algorithms (100% original)
+- All model weights (100% original)
 
-The **Lite Mode optimization technique** - the core innovation that reduces VRAM by ~40% - was pioneered in the **AudioGhost AI** project.
+### Lite Mode by AudioGhost AI
 
+The **Lite Mode optimization technique** - the core innovation that reduces VRAM by 62-78% - was pioneered by **AudioGhost AI**.
+
+- **Repository**: [github.com/0x0funky/audioghost-ai](https://github.com/0x0funky/audioghost-ai)
 - **Key Innovation**: Discovery that SAM-Audio's vision encoder, rankers, and span predictor can be safely removed for audio-only separation tasks
+
+We are grateful to AudioGhost AI for making this optimization technique available.
+
+### About This Package
+
+This package (`sam-audio-infer`) is a repackaging that provides:
+- Simplified Python API for inference
+- CLI interface for easy command-line usage
+- Memory management utilities
+- Configurable precision settings
+
+All credit for the models, algorithms, and optimization techniques belongs to the original authors.
 
 ---
 
@@ -823,6 +844,8 @@ MIT License
 ---
 
 ## Citation
+
+If you use sam-audio-infer in your research, please cite the original SAM-Audio paper:
 
 ```bibtex
 @software{sam_audio_infer,
