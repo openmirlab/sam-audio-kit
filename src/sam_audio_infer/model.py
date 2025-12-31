@@ -204,8 +204,12 @@ class SamAudioInfer:
             from sam_audio import SAMAudio, SAMAudioProcessor
         except ImportError:
             raise ImportError(
-                "sam-audio is not installed. Install it with:\n"
-                "  pip install git+https://github.com/facebookresearch/sam-audio.git"
+                "sam-audio is not installed.\n\n"
+                "SAM-Audio requires Python 3.11+ due to its perception-models dependency.\n\n"
+                "To install sam-audio:\n"
+                "  pip install git+https://github.com/facebookresearch/sam-audio.git\n\n"
+                "For more information, see:\n"
+                "  https://github.com/openmirlab/sam-audio-infer#installation"
             )
 
         # Load model and processor
