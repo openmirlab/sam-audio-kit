@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sam-audio-infer"
-version = "0.1.4"
+version = "0.1.5"
 description = "Optimized inference package for Meta's SAM-Audio model with VRAM-efficient lite mode"
 readme = "README.md"
-license = "MIT"
+license = "MIT AND Apache-2.0"  # MIT for wrapper, Apache-2.0/Meta SAM for extracted code
 requires-python = ">=3.10"
 authors = [
     {name = "OpenMIRLab"}
@@ -34,10 +34,35 @@ classifiers = [
 ]
 
 dependencies = [
+    # Core PyTorch
     "torch>=2.0.0",
     "torchaudio>=2.0.0",
+    "torchvision>=0.15.0",
     "numpy>=1.24.0",
+
+    # Model loading
     "huggingface-hub>=0.20.0",
+    "safetensors>=0.4.0",
+
+    # Transformers & Text
+    "transformers>=4.48.0",
+
+    # Audio processing
+    "torchcodec>=0.1.0",
+    "dacvae @ git+https://github.com/facebookresearch/dacvae",
+
+    # ODE solver for diffusion
+    "torchdiffeq>=0.2.0",
+
+    # Vision encoder dependencies
+    "timm>=0.9.0",
+    "einops>=0.7.0",
+    "xformers>=0.0.20",
+
+    # CLAP text ranker
+    "laion-clap>=1.1.0",
+
+    # Utilities
     "python-dotenv>=1.0.0",
 ]
 

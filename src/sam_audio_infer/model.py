@@ -199,20 +199,8 @@ class SamAudioInfer:
                     f"may be insufficient (need ~{estimated_vram:.1f} GB)"
                 )
 
-        # Import SAM-Audio
-        try:
-            from sam_audio import SAMAudio, SAMAudioProcessor
-        except ImportError:
-            raise ImportError(
-                "sam-audio (Meta's core library) is not installed.\n\n"
-                "sam-audio-infer requires the original sam-audio package from Meta,\n"
-                "which needs Python 3.11+ due to its perception-models dependency.\n\n"
-                "To install (requires Python 3.11+):\n"
-                "  pip install sam-audio-infer\n"
-                "  pip install git+https://github.com/facebookresearch/sam-audio.git\n\n"
-                "For more information, see:\n"
-                "  https://github.com/openmirlab/sam-audio-infer#installation"
-            )
+        # Import SAM-Audio (extracted and bundled within sam-audio-infer)
+        from .sam_audio import SAMAudio, SAMAudioProcessor
 
         # Load model and processor
         model_kwargs = {}
