@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sam-audio-infer"
-version = "0.1.1"
+version = "0.1.2"
 description = "Optimized inference package for Meta's SAM-Audio model with VRAM-efficient lite mode"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [
     {name = "OpenMIRLab"}
 ]
@@ -26,6 +26,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Multimedia :: Sound/Audio",
