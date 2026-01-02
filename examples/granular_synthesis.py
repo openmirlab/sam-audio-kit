@@ -14,48 +14,40 @@ This example demonstrates latent granular synthesis with SOURCE and TARGET conce
     for each segment of TARGET, creating a new hybrid audio.
 
 Workflow:
-1. Build SOURCE database from audio (drums, bass, samples, etc.)
-2. Use TARGET audio as guide - its structure drives grain selection
-3. Output: TARGET's rhythm/structure played with SOURCE's sounds
+1. Separate a song into stems using SAM-Audio
+2. Build SOURCE database from some stems (drums, bass)
+3. Use another stem as TARGET (vocals)
+4. Output: TARGET's rhythm/structure played with SOURCE's sounds
 
 The approach is inspired by Naotokui's latent granular synthesis work.
 """
 
 from pathlib import Path
 
-import torchaudio
-
 from sam_audio_kit import SamAudio, cleanup_gpu_memory
 from sam_audio_kit.synth import LatentSynthesizer
 
 
 # =============================================================================
-# CONFIGURATION - Set your audio file paths
+# CONFIGURATION - Set your audio file path
 # =============================================================================
 
-# SOURCE audio files (will become grains in the database)
-SOURCE_FILES = {
-    "drums": "path/to/drums.wav",
-    "bass": "path/to/bass.wav",
-}
+# Input audio file (will be separated into stems)
+AUDIO_PATH = "path/to/your/song.wav"
 
-# TARGET audio file (guide - its structure drives grain selection)
-TARGET_FILE = "path/to/vocals.wav"
+# What to use as SOURCE (grain database) and TARGET (guide)
+SOURCE_STEMS = ["drums and percussion", "bass"]
+TARGET_STEM = "vocals"
 
 
 def main():
-    # Validate paths
-    missing = [k for k, v in SOURCE_FILES.items() if not Path(v).exists()]
-    if missing:
-        print("Please update 'SOURCE_FILES' paths. Missing:")
-        for k in missing:
-            print(f"  {k}: {SOURCE_FILES[k]}")
-        return
-    if not Path(TARGET_FILE).exists():
-        print(f"Please update 'TARGET_FILE' path: {TARGET_FILE}")
+    # Validate path
+    if not Path(AUDIO_PATH).exists():
+        print("Please update 'AUDIO_PATH' to point to an actual audio file")
+        print("Example: AUDIO_PATH = '/home/user/music/song.wav'")
         return
 
-    # Load model (needed for latent encoding)
+    # Load model
     print("Loading SAM-Audio model...")
     model = SamAudio.from_pretrained(
         "base",
@@ -71,22 +63,26 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # =========================================================================
-    # Step 1: Load audio files
+    # Step 1: Separate audio into stems
     # =========================================================================
     print("\n" + "=" * 50)
-    print("Step 1: Loading audio files")
+    print("Step 1: Separating audio into stems")
     print("=" * 50)
 
-    # Load SOURCE audio (grain material)
+    # Separate SOURCE stems (will become grain database)
     sources = {}
-    for name, path in SOURCE_FILES.items():
-        audio, _ = torchaudio.load(path)
-        sources[name] = audio
-        print(f"  SOURCE '{name}': {path}")
+    for stem in SOURCE_STEMS:
+        result = model.separate(AUDIO_PATH, stem, verbose=True)
+        safe_name = stem.replace(" ", "_").replace("/", "-")
+        sources[safe_name] = result.target
+        result.save(output_dir / f"source_{safe_name}.wav")
+        print(f"  SOURCE '{stem}' saved")
 
-    # Load TARGET audio (guide)
-    target, _ = torchaudio.load(TARGET_FILE)
-    print(f"  TARGET: {TARGET_FILE}")
+    # Separate TARGET stem (will be the guide)
+    target_result = model.separate(AUDIO_PATH, TARGET_STEM, verbose=True)
+    target = target_result.target
+    target_result.save(output_dir / f"target_{TARGET_STEM}.wav")
+    print(f"  TARGET '{TARGET_STEM}' saved")
 
     # =========================================================================
     # Step 2: Build SOURCE grain database
