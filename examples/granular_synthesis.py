@@ -66,39 +66,52 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # =========================================================================
-    # Step 1: Separate audio into stems
+    # Step 1: Load and trim input audio
     # =========================================================================
     print("\n" + "=" * 50)
-    print("Step 1: Separating audio into stems")
+    print("Step 1: Loading input audio")
+    print("=" * 50)
+
+    import torchaudio
+
+    # Load audio
+    audio, sr = torchaudio.load(AUDIO_PATH)
+    print(f"  Loaded: {audio.shape[-1]/sr:.1f}s at {sr}Hz")
+
+    # Trim to OUTPUT_DURATION if specified (saves processing time)
+    if OUTPUT_DURATION is not None:
+        max_samples = int(OUTPUT_DURATION * sr)
+        if audio.shape[-1] > max_samples:
+            audio = audio[..., :max_samples]
+            print(f"  Trimmed to {OUTPUT_DURATION}s for faster processing")
+
+    # =========================================================================
+    # Step 2: Separate audio into stems
+    # =========================================================================
+    print("\n" + "=" * 50)
+    print("Step 2: Separating audio into stems")
     print("=" * 50)
 
     # Separate SOURCE stems (will become grain database)
     sources = {}
     for stem in SOURCE_STEMS:
-        result = model.separate(AUDIO_PATH, stem, verbose=True)
+        result = model.separate(audio, stem, verbose=True)
         safe_name = stem.replace(" ", "_").replace("/", "-")
         sources[safe_name] = result.target
         result.save(output_dir / f"source_{safe_name}.wav")
         print(f"  SOURCE '{stem}' saved")
 
     # Separate TARGET stem (will be the guide)
-    target_result = model.separate(AUDIO_PATH, TARGET_STEM, verbose=True)
+    target_result = model.separate(audio, TARGET_STEM, verbose=True)
     target = target_result.target
     target_result.save(output_dir / f"target_{TARGET_STEM}.wav")
     print(f"  TARGET '{TARGET_STEM}' saved")
 
-    # Trim target to OUTPUT_DURATION if specified
-    if OUTPUT_DURATION is not None:
-        max_samples = int(OUTPUT_DURATION * model.sample_rate)
-        if target.shape[-1] > max_samples:
-            target = target[..., :max_samples]
-            print(f"  TARGET trimmed to {OUTPUT_DURATION}s ({max_samples} samples)")
-
     # =========================================================================
-    # Step 2: Build SOURCE grain database
+    # Step 3: Build SOURCE grain database
     # =========================================================================
     print("\n" + "=" * 50)
-    print("Step 2: Building SOURCE grain database")
+    print("Step 3: Building SOURCE grain database")
     print("=" * 50)
 
     # Build database from all SOURCE audio
@@ -114,10 +127,10 @@ def main():
     print(f"  Sources: {db_info['sources']}")
 
     # =========================================================================
-    # Step 3: Basic granular synthesis (TARGET → SOURCE grains)
+    # Step 4: Basic granular synthesis (TARGET → SOURCE grains)
     # =========================================================================
     print("\n" + "=" * 50)
-    print("Step 3: Granular synthesis (TARGET → SOURCE grains)")
+    print("Step 4: Granular synthesis (TARGET → SOURCE grains)")
     print("=" * 50)
     print("  Using TARGET as guide, replacing with SOURCE grains")
 
@@ -131,10 +144,10 @@ def main():
         print(f"  Saved: {output_path} (temperature={temp})")
 
     # =========================================================================
-    # Step 4: Blending TARGET with granular
+    # Step 5: Blending TARGET with granular
     # =========================================================================
     print("\n" + "=" * 50)
-    print("Step 4: Blend TARGET with granular")
+    print("Step 5: Blend TARGET with granular")
     print("=" * 50)
 
     # Keep some of the original TARGET while adding granular texture
@@ -145,10 +158,10 @@ def main():
         print(f"  Saved: {output_path} (blend_original={blend})")
 
     # =========================================================================
-    # Step 5: Weighted SOURCE remix
+    # Step 6: Weighted SOURCE remix
     # =========================================================================
     print("\n" + "=" * 50)
-    print("Step 5: Weighted SOURCE remix")
+    print("Step 6: Weighted SOURCE remix")
     print("=" * 50)
 
     # Control the mix of different sources in the granular output
@@ -172,10 +185,10 @@ def main():
         print(f"  Saved: remix_{names[1]}_heavy.wav (20% {names[0]}, 80% {names[1]})")
 
     # =========================================================================
-    # Step 6: Random collage (no TARGET needed)
+    # Step 7: Random collage (no TARGET needed)
     # =========================================================================
     print("\n" + "=" * 50)
-    print("Step 6: Random collage")
+    print("Step 7: Random collage")
     print("=" * 50)
 
     # Generate a random collage of grains (no guide needed)
