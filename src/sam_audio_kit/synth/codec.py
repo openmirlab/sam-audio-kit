@@ -275,6 +275,7 @@ class DACVAECodec:
         self,
         latent: Union[LatentRepresentation, torch.Tensor],
         target_length: Optional[int] = None,
+        chunk_duration: float = 30.0,
     ) -> torch.Tensor:
         """
         Decode latent representation back to audio.
@@ -282,6 +283,7 @@ class DACVAECodec:
         Args:
             latent: LatentRepresentation or raw latent tensor
             target_length: Target audio length in samples (trim/pad if specified)
+            chunk_duration: Max duration per chunk in seconds (for memory efficiency)
 
         Returns:
             Audio tensor of shape (samples,) or (batch, samples)
@@ -294,13 +296,32 @@ class DACVAECodec:
         """
         if isinstance(latent, LatentRepresentation):
             latent_tensor = latent.latent
+            sr = latent.sample_rate
         else:
             latent_tensor = latent
+            sr = self.sample_rate
 
         latent_tensor = latent_tensor.to(self._device, self._torch_dtype)
 
-        # Decode via DACVAE
-        audio = self._codec.decode(latent_tensor)  # (B, samples)
+        # Calculate chunk size in latent frames
+        # latent frames = audio_samples / hop_length
+        chunk_samples = int(chunk_duration * sr)
+        chunk_frames = chunk_samples // self.hop_length
+
+        total_frames = latent_tensor.shape[-1]
+
+        if total_frames <= chunk_frames:
+            # Short latent - decode directly
+            audio = self._codec.decode(latent_tensor)  # (B, samples)
+        else:
+            # Long latent - decode in chunks and concatenate
+            audio_chunks = []
+            for start in range(0, total_frames, chunk_frames):
+                end = min(start + chunk_frames, total_frames)
+                chunk = latent_tensor[:, :, start:end]
+                chunk_audio = self._codec.decode(chunk)
+                audio_chunks.append(chunk_audio.cpu())  # Move to CPU to save VRAM
+            audio = torch.cat(audio_chunks, dim=-1)
 
         # Trim/pad to target length
         if target_length is not None:
@@ -315,7 +336,10 @@ class DACVAECodec:
         if audio.shape[0] == 1:
             audio = audio.squeeze(0)
 
-        return audio.cpu()
+        if audio.is_cuda:
+            audio = audio.cpu()
+
+        return audio
 
     def reconstruct(
         self,
