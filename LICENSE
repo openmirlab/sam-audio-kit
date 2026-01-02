@@ -22,7 +22,11 @@ SOFTWARE.
 
 ---
 
-This package includes code from third-party projects with their own licenses:
+This package includes code and ideas from third-party projects:
 
 1. SAM-Audio (Meta AI) - See LICENSE.SAM-AUDIO
 2. Perception Encoders (Meta AI) - See LICENSE.PE
+3. Latent Granular Synthesis (Naotokui)
+   - https://huggingface.co/spaces/naotokui/latentgranular
+   - https://arxiv.org/abs/2507.19202
+   - The neural/latent sampling approach in the synth module is inspired by this work

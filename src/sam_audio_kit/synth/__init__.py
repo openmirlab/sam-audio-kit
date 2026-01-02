@@ -9,6 +9,11 @@ enabling workflows like:
 - Latent Effects: Interpolation, morphing, texture transfer
 - Sound Design: Create new sounds from separated elements
 
+Acknowledgments:
+    The neural/latent sampling approach is inspired by the work of Naotokui:
+    - https://huggingface.co/spaces/naotokui/latentgranular
+    - https://arxiv.org/abs/2507.19202
+
 Example:
     >>> from sam_audio_kit import SamAudioInfer
     >>> from sam_audio_kit.synth import LatentSynthesizer
