@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VRAM Benchmark for SAM-Audio-Infer
+VRAM Benchmark for SAM-Audio-Kit
 
 Measures VRAM usage across different configurations using pynvml.
 """
@@ -139,7 +139,7 @@ def run_benchmark(
 
 
 def main():
-    print("SAM-Audio-Infer VRAM Benchmark")
+    print("SAM-Audio-Kit VRAM Benchmark")
     print("=" * 60)
 
     if not torch.cuda.is_available():
