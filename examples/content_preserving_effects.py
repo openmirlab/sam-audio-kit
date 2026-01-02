@@ -20,11 +20,18 @@ from sam_audio_kit.synth import LatentSynthesizer
 
 
 def match_length(tensor_a, tensor_b):
-    """Match tensor lengths by trimming the longer one."""
+    """Match tensor lengths and devices by trimming the longer one."""
     len_a = tensor_a.shape[-1]
     len_b = tensor_b.shape[-1]
     min_len = min(len_a, len_b)
-    return tensor_a[..., :min_len], tensor_b[..., :min_len]
+    a = tensor_a[..., :min_len]
+    b = tensor_b[..., :min_len]
+    # Ensure same device (prefer CUDA if available)
+    if a.is_cuda and not b.is_cuda:
+        b = b.to(a.device)
+    elif b.is_cuda and not a.is_cuda:
+        a = a.to(b.device)
+    return a, b
 
 
 def latent_enhancement_chain(model, audio):
