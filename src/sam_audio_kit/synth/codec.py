@@ -208,6 +208,7 @@ class DACVAECodec:
         self,
         audio_input: AudioInput,
         normalize: bool = False,
+        chunk_duration: float = 30.0,
     ) -> LatentRepresentation:
         """
         Encode audio to latent representation.
@@ -215,6 +216,7 @@ class DACVAECodec:
         Args:
             audio_input: Audio file path, numpy array, or tensor
             normalize: L2 normalize latent vectors
+            chunk_duration: Max duration per chunk in seconds (for memory efficiency)
 
         Returns:
             LatentRepresentation containing the encoded latent
@@ -241,8 +243,22 @@ class DACVAECodec:
         # Move to device with matching dtype
         audio = audio.to(self._device, self._torch_dtype)
 
-        # Encode via DACVAE - expects (B, 1, T), returns (B, C, T)
-        latent = self._codec(audio)  # Keep (B, 1, T) shape for codec
+        # Chunk long audio to avoid OOM
+        total_samples = audio.shape[-1]
+        chunk_samples = int(chunk_duration * sr)
+
+        if total_samples <= chunk_samples:
+            # Short audio - encode directly
+            latent = self._codec(audio)
+        else:
+            # Long audio - encode in chunks and concatenate
+            latent_chunks = []
+            for start in range(0, total_samples, chunk_samples):
+                end = min(start + chunk_samples, total_samples)
+                chunk = audio[:, :, start:end]
+                chunk_latent = self._codec(chunk)
+                latent_chunks.append(chunk_latent)
+            latent = torch.cat(latent_chunks, dim=-1)
 
         if normalize:
             latent = torch.nn.functional.normalize(latent, dim=1)

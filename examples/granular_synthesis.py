@@ -33,7 +33,7 @@ from sam_audio_kit.synth import LatentSynthesizer
 # =============================================================================
 
 # Input audio file (will be separated into stems)
-AUDIO_PATH = "path/to/your/song.wav"
+AUDIO_PATH = "./assets/newjeas_supershy.wav"
 
 # What to use as SOURCE (grain database) and TARGET (guide)
 SOURCE_STEMS = ["drums and percussion", "bass"]
