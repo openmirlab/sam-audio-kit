@@ -99,10 +99,10 @@ class LatentGranular:
     similarity matching to replace or remix audio in creative ways.
 
     Example:
-        >>> from sam_audio_kit import SamAudioInfer
+        >>> from sam_audio_kit import SamAudio
         >>> from sam_audio_kit.synth import LatentGranular, DACVAECodec
         >>>
-        >>> model = SamAudioInfer.from_pretrained("base")
+        >>> model = SamAudio.from_pretrained("base")
         >>> codec = DACVAECodec(model)
         >>> granular = LatentGranular(codec)
         >>>
@@ -421,15 +421,27 @@ class LatentGranular:
         if isinstance(guide, LatentRepresentation):
             guide_latent = guide
         elif isinstance(guide, torch.Tensor):
-            if guide.dim() <= 2 and guide.shape[0] <= 2:
-                guide_latent = self.codec.encode(guide)
-            else:
+            # Check if it's already latent (3D with shape B, C, T where C is ~128)
+            # vs audio (1D or 2D with shape (samples,) or (channels, samples))
+            if guide.dim() == 3 and guide.shape[1] > 2:
+                # Already latent: (B, C, T)
                 guide_latent = LatentRepresentation(
-                    latent=guide if guide.dim() == 3 else guide.unsqueeze(0),
+                    latent=guide,
                     sample_rate=self._database.sample_rate,
                     hop_length=self._database.hop_length,
                     source="guide",
                 )
+            elif guide.dim() == 2 and guide.shape[0] > 2:
+                # Already latent: (C, T) - add batch dim
+                guide_latent = LatentRepresentation(
+                    latent=guide.unsqueeze(0),
+                    sample_rate=self._database.sample_rate,
+                    hop_length=self._database.hop_length,
+                    source="guide",
+                )
+            else:
+                # Audio tensor - encode it
+                guide_latent = self.codec.encode(guide)
         else:
             guide_latent = self.codec.encode(guide)
 

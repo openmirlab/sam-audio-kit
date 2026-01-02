@@ -1,14 +1,14 @@
 # Python API Reference
 
-## SamAudioInfer
+## SamAudio
 
 Main class for audio separation.
 
 ```python
-from sam_audio_kit import SamAudioInfer
+from sam_audio_kit import SamAudio
 
 # Load model
-model = SamAudioInfer.from_pretrained(
+model = SamAudio.from_pretrained(
     model_name_or_path="base",  # "small", "base", "large", or HuggingFace ID
     dtype="bfloat16",           # "float32", "float16", "bfloat16"
     enable_text_ranker=False,   # Enable text ranker (+~3GB VRAM)
@@ -105,7 +105,7 @@ model = download_and_warmup(
 
 # Warmup existing model
 warmup_time = warmup_model(
-    model,                  # SamAudioInfer instance
+    model,                  # SamAudio instance
     duration_seconds=1.0,
     verbose=True,
 )
@@ -155,7 +155,7 @@ config = PrecisionConfig(
     allow_tf32=True,
     cudnn_benchmark=True,
 )
-model = SamAudioInfer.from_pretrained("base", precision_config=config)
+model = SamAudio.from_pretrained("base", precision_config=config)
 
 # Maximum quality
 config = PrecisionConfig(
@@ -163,7 +163,7 @@ config = PrecisionConfig(
     allow_tf32=False,
     cudnn_deterministic=True,
 )
-model = SamAudioInfer.from_pretrained("base", precision_config=config)
+model = SamAudio.from_pretrained("base", precision_config=config)
 
 # Load from environment variables
 config = PrecisionConfig.from_env()

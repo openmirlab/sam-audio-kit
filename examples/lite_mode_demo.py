@@ -1,15 +1,14 @@
 """
 Lite mode demonstration for sam-audio-kit.
 
-This example shows the VRAM savings achieved by lite mode
-compared to the full model.
+This example shows VRAM usage for different model configurations.
+Lite mode is always enabled - you control which optional features to add.
 """
 
 import torch
 
 from sam_audio_kit import (
-    SamAudioInfer,
-    LiteModelConfig,
+    SamAudio,
     cleanup_gpu_memory,
     get_gpu_memory_info,
     estimate_lite_savings,
@@ -27,7 +26,7 @@ def print_gpu_memory(label: str):
 
 def main():
     print("=" * 60)
-    print("SAM-Audio Lite Mode Demonstration")
+    print("SAM-Audio VRAM Usage Demonstration")
     print("=" * 60)
 
     # Check CUDA availability
@@ -36,7 +35,7 @@ def main():
 
     # Show estimated savings
     print("\nEstimated VRAM savings with lite mode:")
-    for size in ["small", "base", "large"]:
+    for size in ["base", "large"]:
         savings = estimate_lite_savings(size)
         print(f"\n  {size.upper()} model:")
         for component, gb in savings.items():
@@ -50,66 +49,91 @@ def main():
     cleanup_gpu_memory()
     print_gpu_memory("Initial state")
 
-    # Load lite model
-    print("\n[1] Loading LITE model (aggressive config)...")
-    lite_config = LiteModelConfig.aggressive()
-    print(f"    Removing: {lite_config.components_to_remove}")
+    # Configuration 1: Minimal (default) - most VRAM efficient
+    print("\n[1] Loading MINIMAL config (default, most efficient)...")
+    print("    enable_text_ranker=False, enable_span_predictor=False")
 
     try:
-        model_lite = SamAudioInfer.from_pretrained(
+        model = SamAudio.from_pretrained(
             "base",
-            lite_mode=True,
-            lite_config=lite_config,
             dtype="bfloat16",
             verbose=False,
         )
-        print_gpu_memory("After lite model load")
+        print_gpu_memory("After load")
 
-        # Get actual memory usage
-        lite_memory = get_gpu_memory_info()
-        lite_allocated = lite_memory.allocated_gb if lite_memory else 0
+        minimal_memory = get_gpu_memory_info()
+        minimal_allocated = minimal_memory.allocated_gb if minimal_memory else 0
 
-        # Cleanup
-        model_lite.unload()
+        model.unload()
         cleanup_gpu_memory()
         print_gpu_memory("After unload")
 
     except Exception as e:
         print(f"    Error: {e}")
-        lite_allocated = 0
+        minimal_allocated = 0
+
+    # Configuration 2: With text ranker (better quality, +3GB)
+    print("\n[2] Loading WITH TEXT RANKER (better quality, +3GB)...")
+    print("    enable_text_ranker=True")
+
+    try:
+        model = SamAudio.from_pretrained(
+            "base",
+            dtype="bfloat16",
+            enable_text_ranker=True,
+            verbose=False,
+        )
+        print_gpu_memory("After load")
+
+        ranker_memory = get_gpu_memory_info()
+        ranker_allocated = ranker_memory.allocated_gb if ranker_memory else 0
+
+        model.unload()
+        cleanup_gpu_memory()
+        print_gpu_memory("After unload")
+
+    except Exception as e:
+        print(f"    Error: {e}")
+        ranker_allocated = 0
 
     print("\n" + "-" * 60)
 
     # Summary
-    print("\nSummary:")
-    print(f"  Lite model (bfloat16): ~{lite_allocated:.2f} GB")
-    print(f"  Recommended minimum VRAM: 6 GB")
-    print(f"  Comfortable operation: 8+ GB")
+    print("\nSummary (base model, bfloat16):")
+    print(f"  Minimal config:      ~{minimal_allocated:.2f} GB")
+    print(f"  With text ranker:    ~{ranker_allocated:.2f} GB")
+    print(f"  Recommended minimum: 4 GB")
+    print(f"  Comfortable:         8+ GB")
 
     print("\n" + "=" * 60)
-    print("Lite Mode Configuration Options:")
+    print("Configuration Options:")
     print("=" * 60)
 
-    # Show configuration options
-    print("\n1. Aggressive (default) - Maximum VRAM savings:")
-    aggressive = LiteModelConfig.aggressive()
-    print(f"   Removes: {aggressive.components_to_remove}")
-
-    print("\n2. Conservative - Keep some features:")
-    conservative = LiteModelConfig.conservative()
-    print(f"   Removes: {conservative.components_to_remove}")
-
-    print("\n3. Custom configuration:")
     print("""
-   from sam_audio_kit import LiteModelConfig
+1. Minimal (default) - Maximum VRAM savings (~3 GB):
+   model = SamAudio.from_pretrained("base", dtype="bfloat16")
 
-   config = LiteModelConfig(
-       remove_vision_encoder=True,   # ~2GB savings
-       remove_visual_ranker=True,    # ~2GB savings
-       remove_text_ranker=False,     # Keep for better results
-       remove_span_predictor=True,   # ~1-2GB savings
+2. With text ranker - Better separation quality (~6 GB):
+   model = SamAudio.from_pretrained(
+       "base",
+       dtype="bfloat16",
+       enable_text_ranker=True,
    )
-   model = SamAudioInfer.from_pretrained("base", lite_config=config)
+
+3. With span predictor - Time segment detection (~6 GB):
+   model = SamAudio.from_pretrained(
+       "base",
+       dtype="bfloat16",
+       enable_span_predictor=True,
+   )
+
+4. All features enabled (~9 GB):
+   model = SamAudio.from_pretrained(
+       "base",
+       dtype="bfloat16",
+       enable_text_ranker=True,
+       enable_span_predictor=True,
+   )
     """)
 
 

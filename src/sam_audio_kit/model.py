@@ -1,7 +1,7 @@
 """
 Main SAM-Audio inference model wrapper.
 
-This module provides the SamAudioInfer class, which is the main entry point
+This module provides the SamAudio class, which is the main entry point
 for using SAM-Audio with optimized inference settings.
 """
 
@@ -34,7 +34,7 @@ from .types import (
 )
 
 
-class SamAudioInfer:
+class SamAudio:
     """
     Optimized inference wrapper for SAM-Audio model.
 
@@ -43,12 +43,12 @@ class SamAudioInfer:
 
     Example:
         >>> # Basic usage (recommended, ~3 GB VRAM)
-        >>> model = SamAudioInfer.from_pretrained("base", dtype="bfloat16")
+        >>> model = SamAudio.from_pretrained("base", dtype="bfloat16")
         >>> result = model.separate("audio.wav", description="vocals")
         >>> result.save("vocals.wav", "accompaniment.wav")
 
         >>> # With text ranker for better quality (+3 GB VRAM)
-        >>> model = SamAudioInfer.from_pretrained(
+        >>> model = SamAudio.from_pretrained(
         ...     "base",
         ...     dtype="bfloat16",
         ...     enable_text_ranker=True,
@@ -71,7 +71,7 @@ class SamAudioInfer:
         chunk_duration: float = 25.0,
     ):
         """
-        Initialize SamAudioInfer.
+        Initialize SamAudio.
 
         Args:
             model: SAM-Audio model instance
@@ -104,7 +104,7 @@ class SamAudioInfer:
         hf_token: Optional[str] = None,
         cache_dir: Optional[Union[str, Path]] = None,
         verbose: bool = True,
-    ) -> "SamAudioInfer":
+    ) -> "SamAudio":
         """
         Load SAM-Audio model from HuggingFace Hub or local path.
 
@@ -126,14 +126,14 @@ class SamAudioInfer:
             verbose: Print loading progress
 
         Returns:
-            SamAudioInfer instance ready for inference
+            SamAudio instance ready for inference
 
         Example:
             >>> # Basic usage (most VRAM efficient, ~3GB)
-            >>> model = SamAudioInfer.from_pretrained("base", dtype="bfloat16")
+            >>> model = SamAudio.from_pretrained("base", dtype="bfloat16")
 
             >>> # With text ranker for better quality (+3GB VRAM)
-            >>> model = SamAudioInfer.from_pretrained(
+            >>> model = SamAudio.from_pretrained(
             ...     "base",
             ...     dtype="bfloat16",
             ...     enable_text_ranker=True,
@@ -142,7 +142,7 @@ class SamAudioInfer:
             >>> # With custom precision settings
             >>> from sam_audio_kit import PrecisionConfig
             >>> config = PrecisionConfig(matmul_precision="medium")
-            >>> model = SamAudioInfer.from_pretrained("base", precision_config=config)
+            >>> model = SamAudio.from_pretrained("base", precision_config=config)
         """
         from .download import get_cache_dir, get_hf_token
         from .precision import apply_precision_config, PrecisionConfig
@@ -361,7 +361,7 @@ class SamAudioInfer:
             cleanup_gpu_memory()
         return results
 
-    def to(self, device: DeviceType) -> "SamAudioInfer":
+    def to(self, device: DeviceType) -> "SamAudio":
         """
         Move model to a different device.
 
@@ -386,7 +386,7 @@ class SamAudioInfer:
 
     def __repr__(self) -> str:
         return (
-            f"SamAudioInfer("
+            f"SamAudio("
             f"device={self._device}, "
             f"dtype={self._dtype}, "
             f"lite_mode={self.is_lite})"

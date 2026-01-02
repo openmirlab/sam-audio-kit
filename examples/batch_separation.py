@@ -1,13 +1,14 @@
 """
 Batch separation example for sam-audio-kit.
 
-This example demonstrates how to separate multiple stems
-from a single audio file.
+This example demonstrates two approaches for separating multiple stems:
+1. Manual loop with cleanup between stems
+2. Using the built-in separate_batch() method
 """
 
 from pathlib import Path
 
-from sam_audio_kit import SamAudioInfer, cleanup_gpu_memory
+from sam_audio_kit import SamAudio, cleanup_gpu_memory
 
 
 def main():
@@ -16,7 +17,7 @@ def main():
 
     # Check if file exists
     if not Path(audio_path).exists():
-        print(f"Please update 'audio_path' to point to an actual audio file")
+        print("Please update 'audio_path' to point to an actual audio file")
         return
 
     # Define stems to extract
@@ -30,9 +31,8 @@ def main():
 
     # Load model
     print("Loading SAM-Audio model...")
-    model = SamAudioInfer.from_pretrained(
+    model = SamAudio.from_pretrained(
         "base",
-        lite_mode=True,
         dtype="bfloat16",
         verbose=True,
     )
@@ -41,7 +41,7 @@ def main():
     output_dir = Path("output/stems")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Separate each stem
+    # Option 1: Manual loop (more control over each separation)
     print(f"\nSeparating {len(stems)} stems...")
 
     for i, stem in enumerate(stems):
@@ -67,6 +67,12 @@ def main():
     print(f"\n{'='*50}")
     print(f"All stems saved to: {output_dir}")
     print(f"{'='*50}")
+
+    # Option 2: Using separate_batch() (simpler, handles cleanup automatically)
+    # results = model.separate_batch(audio_path, stems, verbose=True)
+    # for result, stem in zip(results, stems):
+    #     safe_name = stem.replace(" ", "_").replace("/", "-")
+    #     result.save(output_dir / f"{safe_name}.wav")
 
 
 if __name__ == "__main__":

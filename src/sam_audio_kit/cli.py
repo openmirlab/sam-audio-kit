@@ -14,7 +14,7 @@ def cmd_separate(args):
         sys.exit(1)
 
     # Import here to avoid slow startup
-    from .model import SamAudioInfer
+    from .model import SamAudio
     from .precision import PrecisionConfig
 
     # Build precision config from explicit flags
@@ -43,7 +43,7 @@ def cmd_separate(args):
         if args.verbose:
             print(f"Loading SAM-Audio ({args.model})...")
 
-        model = SamAudioInfer.from_pretrained(
+        model = SamAudio.from_pretrained(
             args.model,
             dtype=args.dtype,
             enable_text_ranker=args.enable_text_ranker,

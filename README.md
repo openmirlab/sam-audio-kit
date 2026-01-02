@@ -22,17 +22,16 @@ This is a lightweight, dependency-minimal repackaging focused solely on inferenc
 - **Model Caching**: Configurable cache directory with environment variable support
 - **Warmup Support**: Pre-compile CUDA kernels for faster first inference
 - **Simple API**: Easy-to-use Python API and CLI
+- **Creative Synthesis**: Iterative subtractive synthesis using semantic filtering
 
 ## Installation
 
 ```bash
 # Using uv (recommended)
 uv add sam-audio-kit
-uv pip install git+https://github.com/facebookresearch/sam-audio.git
 
 # Or using pip
 pip install sam-audio-kit
-pip install git+https://github.com/facebookresearch/sam-audio.git
 ```
 
 For development:
@@ -40,6 +39,9 @@ For development:
 git clone https://github.com/openmirlab/sam-audio-kit.git
 cd sam-audio-kit
 uv sync
+
+# Optional: Initialize Claude Code for AI-assisted development
+claude init
 ```
 
 ### Prerequisites
@@ -62,10 +64,10 @@ uv sync
 ### Python API
 
 ```python
-from sam_audio_kit import SamAudioInfer
+from sam_audio_kit import SamAudio
 
 # Load model (recommended settings, ~3 GB VRAM)
-model = SamAudioInfer.from_pretrained(
+model = SamAudio.from_pretrained(
     "base",                      # Model size: "small", "base", or "large"
     dtype="bfloat16",            # Mixed precision (~50% VRAM savings)
     enable_text_ranker=False,    # +3 GB VRAM if enabled
@@ -76,6 +78,37 @@ model = SamAudioInfer.from_pretrained(
 result = model.separate("song.wav", description="vocals")
 result.save("vocals.wav", "accompaniment.wav")
 ```
+
+### Iterative Subtractive Synthesis (New!)
+
+Use SAM-Audio as a creative semantic synthesizer:
+
+```python
+from sam_audio_kit import SamAudio
+import torch
+
+model = SamAudio.from_pretrained("base", dtype="bfloat16")
+
+# Start with white noise
+white_noise = torch.randn(1, 48000 * 10)  # 10 seconds
+
+# Iteratively sculpt sound by removing components
+descriptions = [
+    "harsh high frequencies",
+    "muddy low end",
+    "noisy artifacts"
+]
+
+current = white_noise
+for desc in descriptions:
+    result = model.separate(current, desc)
+    current = result.residual  # Keep what's left
+
+# Save sculpted sound
+torchaudio.save("sculpted.wav", current, 48000)
+```
+
+See [Iterative Subtractive Synthesis](docs/subtractive_synthesis.md) for detailed guide and examples.
 
 ### Command Line
 
@@ -105,6 +138,7 @@ sam-audio-kit download --model base --warmup
 - [Python API](docs/api.md) - Python API reference
 - [Configuration](docs/configuration.md) - Models, precision, lite mode settings
 - [Architecture](docs/architecture.md) - How it works and optimization techniques
+- [Iterative Subtractive Synthesis](docs/subtractive_synthesis.md) - Creative semantic filtering
 - [Benchmarks](docs/benchmarks.md) - VRAM and performance benchmarks
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 

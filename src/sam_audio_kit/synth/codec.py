@@ -103,10 +103,10 @@ class DACVAECodec:
     - Latent space manipulation
 
     Example:
-        >>> from sam_audio_kit import SamAudioInfer
+        >>> from sam_audio_kit import SamAudio
         >>> from sam_audio_kit.synth import DACVAECodec
         >>>
-        >>> model = SamAudioInfer.from_pretrained("base")
+        >>> model = SamAudio.from_pretrained("base")
         >>> codec = DACVAECodec(model)
         >>>
         >>> # Encode audio to latent
@@ -128,7 +128,7 @@ class DACVAECodec:
         Initialize codec wrapper.
 
         Args:
-            model: SamAudioInfer instance or raw SAMAudio model
+            model: SamAudio instance or raw SAMAudio model
             device: Override device
             dtype: Override dtype
         """
@@ -225,14 +225,24 @@ class DACVAECodec:
             >>> print(f"Duration: {latent.duration_seconds:.2f}s")
         """
         audio, sr, source = self._load_audio(audio_input)
+
+        # DACVAE encoder expects (B, 1, T) shape - batch, 1 channel, time samples
+        if audio.dim() == 1:
+            audio = audio.unsqueeze(0).unsqueeze(0)  # (T,) -> (1, 1, T)
+        elif audio.dim() == 2:
+            # (C, T) -> (1, 1, T) taking first channel
+            audio = audio[0:1, :].unsqueeze(0)  # (1, T) -> (1, 1, T)
+        elif audio.dim() == 3 and audio.shape[1] == 1:
+            # Already (B, 1, T) - keep as is
+            pass
+        else:
+            raise ValueError(f"Unexpected audio shape: {audio.shape}")
+
+        # Move to device with matching dtype
         audio = audio.to(self._device, self._torch_dtype)
 
-        # Add batch dimension if needed
-        if audio.dim() == 2:
-            audio = audio.unsqueeze(0)  # (1, 1, samples)
-
-        # Encode via DACVAE
-        latent = self._codec(audio.squeeze(1))  # (B, C, T)
+        # Encode via DACVAE - expects (B, 1, T), returns (B, C, T)
+        latent = self._codec(audio)  # Keep (B, 1, T) shape for codec
 
         if normalize:
             latent = torch.nn.functional.normalize(latent, dim=1)

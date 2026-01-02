@@ -9,8 +9,8 @@ This package provides synthesis, effects, and VRAM-efficient inference for SAM-A
 - Memory management: Automatic GPU cache cleanup
 
 Example:
-    >>> from sam_audio_kit import SamAudioInfer
-    >>> model = SamAudioInfer.from_pretrained("facebook/sam-audio-base", lite_mode=True)
+    >>> from sam_audio_kit import SamAudio
+    >>> model = SamAudio.from_pretrained("facebook/sam-audio-base", lite_mode=True)
     >>> result = model.separate("audio.wav", description="vocals")
 
 Acknowledgments:
@@ -32,7 +32,7 @@ open-source audio AI.
 
 __version__ = "0.1.0"
 
-from .model import SamAudioInfer
+from .model import SamAudio
 from .lite import (
     create_lite_model,
     LiteModelConfig,
@@ -72,7 +72,7 @@ from .precision import (
 
 __all__ = [
     # Main class
-    "SamAudioInfer",
+    "SamAudio",
     # Lite mode
     "create_lite_model",
     "LiteModelConfig",

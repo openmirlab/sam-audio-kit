@@ -31,10 +31,10 @@ SAM-Audio models are gated and require access approval.
 result = model.separate("song.wav", "vocals", chunk_duration=15.0)
 
 # Or use smaller model
-model = SamAudioInfer.from_pretrained("small", lite_mode=True)
+model = SamAudio.from_pretrained("small")
 
-# Or use lite mode with aggressive config
-model = SamAudioInfer.from_pretrained("base", lite_mode=True)
+# Or keep optional features disabled
+model = SamAudio.from_pretrained("base")
 ```
 
 ### Slow first inference
@@ -92,7 +92,7 @@ sam-audio-kit separate audio.wav -d "vocals" -o out.wav \
 Or in Python:
 
 ```python
-from sam_audio_kit import SamAudioInfer, PrecisionConfig
+from sam_audio_kit import SamAudio, PrecisionConfig
 
 config = PrecisionConfig(
     matmul_precision="highest",
@@ -100,5 +100,5 @@ config = PrecisionConfig(
     cudnn_benchmark=False,
     cudnn_deterministic=True,
 )
-model = SamAudioInfer.from_pretrained("base", precision_config=config)
+model = SamAudio.from_pretrained("base", precision_config=config)
 ```

@@ -69,7 +69,7 @@ def run_benchmark(
     dtype: str,
 ) -> BenchmarkResult:
     """Run a single benchmark."""
-    from sam_audio_kit import SamAudioInfer, LiteModelConfig
+    from sam_audio_kit import SamAudio, LiteModelConfig
 
     # Clean and get baseline
     cleanup_gpu()
@@ -89,7 +89,7 @@ def run_benchmark(
         start_time = time.time()
 
         if lite_config_name == "no_lite":
-            model = SamAudioInfer.from_pretrained(
+            model = SamAudio.from_pretrained(
                 model_size,
                 lite_mode=False,
                 device="cuda",
@@ -97,7 +97,7 @@ def run_benchmark(
                 verbose=False,
             )
         else:
-            model = SamAudioInfer.from_pretrained(
+            model = SamAudio.from_pretrained(
                 model_size,
                 lite_mode=True,
                 lite_config=lite_config,

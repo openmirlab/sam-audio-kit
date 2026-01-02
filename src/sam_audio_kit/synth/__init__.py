@@ -15,11 +15,11 @@ Acknowledgments:
     - https://arxiv.org/abs/2507.19202
 
 Example:
-    >>> from sam_audio_kit import SamAudioInfer
+    >>> from sam_audio_kit import SamAudio
     >>> from sam_audio_kit.synth import LatentSynthesizer
     >>>
     >>> # Load model
-    >>> model = SamAudioInfer.from_pretrained("base")
+    >>> model = SamAudio.from_pretrained("base")
     >>>
     >>> # Create synthesizer
     >>> synth = LatentSynthesizer(model)
@@ -85,7 +85,7 @@ class LatentSynthesizer:
         Initialize synthesizer.
 
         Args:
-            model: SamAudioInfer instance
+            model: SamAudio instance
             grain_size: Grain size for granular synthesis (frames)
             grain_stride: Stride between grains
             device: Device for computations

@@ -146,7 +146,7 @@ def download_model(
 
 
 def warmup_model(
-    model: "SamAudioInfer",  # type: ignore  # noqa: F821
+    model: "SamAudio",  # type: ignore  # noqa: F821
     duration_seconds: float = 1.0,
     verbose: bool = True,
 ) -> float:
@@ -161,7 +161,7 @@ def warmup_model(
     After warmup, subsequent inferences will be faster.
 
     Args:
-        model: Loaded SamAudioInfer instance
+        model: Loaded SamAudio instance
         duration_seconds: Duration of dummy audio to process
         verbose: Print warmup progress
 
@@ -169,7 +169,7 @@ def warmup_model(
         Warmup time in seconds
 
     Example:
-        >>> model = SamAudioInfer.from_pretrained("base")
+        >>> model = SamAudio.from_pretrained("base")
         >>> warmup_time = warmup_model(model)
         >>> print(f"Warmup completed in {warmup_time:.2f}s")
     """
@@ -222,7 +222,7 @@ def download_and_warmup(
     hf_token: Optional[str] = None,
     warmup_duration: float = 1.0,
     verbose: bool = True,
-) -> "SamAudioInfer":  # type: ignore  # noqa: F821
+) -> "SamAudio":  # type: ignore  # noqa: F821
     """
     Download model, load it, and run warmup inference.
 
@@ -240,7 +240,7 @@ def download_and_warmup(
         verbose: Print progress
 
     Returns:
-        Loaded and warmed-up SamAudioInfer instance
+        Loaded and warmed-up SamAudio instance
 
     Example:
         >>> # Prepare model for production
@@ -248,7 +248,7 @@ def download_and_warmup(
         >>> # Model is now ready for fast inference
         >>> result = model.separate("audio.wav", "vocals")
     """
-    from .model import SamAudioInfer
+    from .model import SamAudio
 
     # Resolve cache directory
     if cache_dir is None:
@@ -266,7 +266,7 @@ def download_and_warmup(
     if verbose:
         print("Loading model...")
 
-    model = SamAudioInfer.from_pretrained(
+    model = SamAudio.from_pretrained(
         model_size,
         lite_mode=lite_mode,
         device=device,
@@ -372,4 +372,4 @@ def clear_cache(
 
 # Type hint import for runtime
 if False:  # TYPE_CHECKING equivalent that works at runtime
-    from .model import SamAudioInfer
+    from .model import SamAudio
