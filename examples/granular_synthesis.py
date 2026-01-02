@@ -39,8 +39,10 @@ AUDIO_PATH = "./assets/newjeas_supershy.wav"
 SOURCE_STEMS = ["drums and percussion", "bass"]
 TARGET_STEM = "vocals"
 
-# Output duration in seconds (None = full length, or set e.g. 30.0 for 30 seconds)
-OUTPUT_DURATION = 30.0
+# Output duration in seconds
+# - None = process full audio (may be slow/OOM for long files)
+# - 30.0 = process first 30 seconds (faster, recommended for testing)
+OUTPUT_DURATION = 30.0  # Set to None for full length
 
 
 def main():
