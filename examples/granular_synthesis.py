@@ -39,6 +39,9 @@ AUDIO_PATH = "./assets/newjeas_supershy.wav"
 SOURCE_STEMS = ["drums and percussion", "bass"]
 TARGET_STEM = "vocals"
 
+# Output duration in seconds (None = full length, or set e.g. 30.0 for 30 seconds)
+OUTPUT_DURATION = 30.0
+
 
 def main():
     # Validate path
@@ -83,6 +86,13 @@ def main():
     target = target_result.target
     target_result.save(output_dir / f"target_{TARGET_STEM}.wav")
     print(f"  TARGET '{TARGET_STEM}' saved")
+
+    # Trim target to OUTPUT_DURATION if specified
+    if OUTPUT_DURATION is not None:
+        max_samples = int(OUTPUT_DURATION * model.sample_rate)
+        if target.shape[-1] > max_samples:
+            target = target[..., :max_samples]
+            print(f"  TARGET trimmed to {OUTPUT_DURATION}s ({max_samples} samples)")
 
     # =========================================================================
     # Step 2: Build SOURCE grain database
