@@ -42,7 +42,7 @@ TARGET_STEM = "vocals"
 # Output duration in seconds
 # - None = process full audio (may be slow/OOM for long files)
 # - 30.0 = process first 30 seconds (faster, recommended for testing)
-OUTPUT_DURATION = 30.0  # Set to None for full length
+OUTPUT_DURATION = None  # Set to None for full length
 
 
 def main():

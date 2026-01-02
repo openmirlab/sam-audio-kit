@@ -19,7 +19,42 @@ import torch
 import torchaudio
 
 from sam_audio_kit import SamAudio, cleanup_gpu_memory
-from sam_audio_kit.synth import DACVAECodec
+
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# Input audio file (or None to use generated white noise)
+AUDIO_PATH = None  # e.g., "./assets/song.wav" or None for white noise
+
+# Duration in seconds (for white noise, or to trim input audio)
+DURATION = 10.0
+
+# What to iteratively remove (each step uses the previous residual)
+# Try different removal sequences for different effects:
+#
+# Wind texture from noise:
+#   ["sharp transients", "low rumble", "high hiss", "periodic components"]
+#
+# Vintage radio effect:
+#   ["deep bass below 100Hz", "bright highs above 8kHz", "stereo width", "modern clarity"]
+#
+# Audio restoration:
+#   ["vinyl crackle", "tape hiss", "60Hz hum", "room reverb", "background noise"]
+#
+# Semantic EQ:
+#   ["harsh sibilance", "muddy low-mids", "boxy resonances", "digital harshness"]
+#
+REMOVAL_DESCRIPTIONS = [
+    "sharp transient sounds and clicks",
+    "low frequency rumble",
+    "high frequency hiss",
+    "periodic and repetitive components",
+]
+
+# Save intermediate results for each removal step
+SAVE_INTERMEDIATE = True
 
 
 def subtractive_synthesis(
@@ -97,233 +132,47 @@ def create_white_noise(duration_seconds=10.0, sample_rate=48000):
     return torch.randn(1, num_samples) * 0.1  # Lower amplitude for safety
 
 
-def example_1_noise_to_texture():
-    """Example 1: Transform white noise into textured sound."""
-    print("\n" + "="*60)
-    print("EXAMPLE 1: White Noise to Wind Texture")
-    print("="*60)
-    
-    # Load model
-    model = SamAudio.from_pretrained("base", dtype="bfloat16")
-    
-    # Create white noise
-    white_noise = create_white_noise(duration_seconds=8.0)
-    
-    # Define removal sequence
-    removal_descriptions = [
-        "sharp transient sounds and clicks",
-        "low frequency rumble below 80Hz", 
-        "high frequency hiss above 12kHz",
-        "periodic and repetitive components",
-        "harmonic content and musical tones"
-    ]
-    
-    # Apply subtractive synthesis
-    final_sound = subtractive_synthesis(
-        model,
-        white_noise,
-        removal_descriptions,
-        save_intermediate=True,
-        output_dir="output/wind_texture"
-    )
-    
-    cleanup_gpu_memory()
-    return final_sound
-
-
-def example_2_vintage_effect():
-    """Example 2: Create vintage radio effect from clean audio."""
-    print("\n" + "="*60)
-    print("EXAMPLE 2: Vintage Radio Effect")
-    print("="*60)
-    
-    # Load model
-    model = SamAudio.from_pretrained("base", dtype="bfloat16")
-    
-    # You need to provide your own audio file
-    input_audio = "path/to/your/clean_recording.wav"
-    
-    if not Path(input_audio).exists():
-        print(f"Please update input_audio path to point to an actual audio file")
-        print(f"Current: {input_audio}")
-        return None
-    
-    # Define vintage character removal
-    removal_descriptions = [
-        "deep bass frequencies below 100Hz",
-        "bright high frequencies above 8kHz", 
-        "stereo width and spatial imaging",
-        "modern digital clarity",
-        "precise transients and attacks"
-    ]
-    
-    # Apply subtractive synthesis
-    vintage_sound = subtractive_synthesis(
-        model,
-        input_audio,
-        removal_descriptions,
-        save_intermediate=True,
-        output_dir="output/vintage_effect"
-    )
-    
-    cleanup_gpu_memory()
-    return vintage_sound
-
-
-def example_3_sound_design():
-    """Example 3: Create sci-fi creature sound from animal recording."""
-    print("\n" + "="*60)
-    print("EXAMPLE 3: Sci-Fi Creature Sound Design")
-    print("="*60)
-    
-    # Load model
-    model = SamAudio.from_pretrained("base", dtype="bfloat16")
-    
-    # You need to provide an animal recording
-    input_audio = "path/to/animal_recording.wav"
-    
-    if not Path(input_audio).exists():
-        print(f"Please update input_audio path to point to an actual audio file")
-        print(f"Current: {input_audio}")
-        return None
-    
-    # Transform into alien creature
-    removal_descriptions = [
-        "natural animal characteristics",
-        "familiar mammal sounds",
-        "earthly resonances and tones",
-        "organic warmth and body",
-        "recognizable animal vocalizations"
-    ]
-    
-    # Apply subtractive synthesis
-    creature_sound = subtractive_synthesis(
-        model,
-        input_audio,
-        removal_descriptions,
-        save_intermediate=True,
-        output_dir="output/creature_sound"
-    )
-    
-    cleanup_gpu_memory()
-    return creature_sound
-
-
-def example_4_audio_restoration():
-    """Example 4: Multi-stage audio restoration."""
-    print("\n" + "="*60)
-    print("EXAMPLE 4: Audio Restoration")
-    print("="*60)
-    
-    # Load model
-    model = SamAudio.from_pretrained("base", dtype="bfloat16")
-    
-    # You need to provide a noisy recording
-    input_audio = "path/to/noisy_recording.wav"
-    
-    if not Path(input_audio).exists():
-        print(f"Please update input_audio path to point to an actual audio file")
-        print(f"Current: {input_audio}")
-        return None
-    
-    # Remove various types of noise
-    removal_descriptions = [
-        "vinyl crackle and pops",
-        "tape hiss and surface noise",
-        "60Hz electrical hum and buzz",
-        "room reverb and ambience",
-        "background noise and artifacts"
-    ]
-    
-    # Apply subtractive synthesis
-    restored_audio = subtractive_synthesis(
-        model,
-        input_audio,
-        removal_descriptions,
-        save_intermediate=True,
-        output_dir="output/restored_audio"
-    )
-    
-    cleanup_gpu_memory()
-    return restored_audio
-
-
-def example_5_semantic_eq():
-    """Example 5: Semantic EQ with character shaping."""
-    print("\n" + "="*60)
-    print("EXAMPLE 5: Semantic EQ and Character Shaping")
-    print("="*60)
-    
-    # Load model
-    model = SamAudio.from_pretrained("base", dtype="bfloat16")
-    
-    # You need to provide a mix
-    input_audio = "path/to/your/mix.wav"
-    
-    if not Path(input_audio).exists():
-        print(f"Please update input_audio path to point to an actual audio file")
-        print(f"Current: {input_audio}")
-        return None
-    
-    # Shape character through semantic filtering
-    removal_descriptions = [
-        "harsh sibilance and ess sounds",
-        "muddy low-mid buildup around 300Hz",
-        "boxy resonances in the 1kHz range",
-        "excessive brightness and air",
-        "digital harshness and edginess"
-    ]
-    
-    # Apply subtractive synthesis
-    shaped_audio = subtractive_synthesis(
-        model,
-        input_audio,
-        removal_descriptions,
-        save_intermediate=True,
-        output_dir="output/semantic_eq"
-    )
-    
-    cleanup_gpu_memory()
-    return shaped_audio
-
-
 def main():
-    """Run all examples."""
-    print("SAM-Audio Iterative Subtractive Synthesis Examples")
+    """Run subtractive synthesis with configuration."""
     print("=" * 60)
-    print("\nThis demo shows how to use SAM-Audio as a semantic subtractive synthesizer.")
-    print("Each example transforms audio by iteratively removing unwanted components.")
-    
-    # Create output directory
-    Path("output").mkdir(exist_ok=True)
-    
-    try:
-        # Example 1: Noise to texture (always works)
-        example_1_noise_to_texture()
-        
-        # Examples 2-5 require user-provided audio files
-        print("\n" + "="*60)
-        print("NOTE: Examples 2-5 require you to update audio file paths")
-        print("Please edit the file paths in the example functions above")
-        print("="*60)
-        
-        # Uncomment these examples after updating file paths:
-        # example_2_vintage_effect()
-        # example_3_sound_design()
-        # example_4_audio_restoration()
-        # example_5_semantic_eq()
-        
-    except Exception as e:
-        print(f"Error: {e}")
-        print("Make sure you have:")
-        print("1. Installed sam-audio-kit: pip install sam-audio-kit")
-        print("2. Authenticated with HuggingFace: huggingface-cli login")
-        print("3. CUDA-capable GPU with sufficient VRAM")
-    
-    print("\n" + "="*60)
-    print("All examples completed!")
-    print("Check the 'output/' directory for results.")
-    print("="*60)
+    print("SAM-Audio Iterative Subtractive Synthesis")
+    print("=" * 60)
+
+    # Load model
+    print("\nLoading SAM-Audio model...")
+    model = SamAudio.from_pretrained("base", dtype="bfloat16")
+
+    # Get or generate input audio
+    if AUDIO_PATH is None:
+        print(f"\nGenerating {DURATION}s of white noise as starting material...")
+        audio = create_white_noise(duration_seconds=DURATION)
+    else:
+        if not Path(AUDIO_PATH).exists():
+            print(f"Audio file not found: {AUDIO_PATH}")
+            return
+        print(f"\nLoading audio: {AUDIO_PATH}")
+        audio, sr = torchaudio.load(AUDIO_PATH)
+        # Trim to DURATION if specified
+        if DURATION is not None:
+            max_samples = int(DURATION * sr)
+            if audio.shape[-1] > max_samples:
+                audio = audio[..., :max_samples]
+                print(f"  Trimmed to {DURATION}s")
+
+    # Run subtractive synthesis
+    final_audio = subtractive_synthesis(
+        model,
+        audio,
+        REMOVAL_DESCRIPTIONS,
+        save_intermediate=SAVE_INTERMEDIATE,
+        output_dir="output/subtractive"
+    )
+
+    cleanup_gpu_memory()
+
+    print("\n" + "=" * 60)
+    print("Done! Check 'output/subtractive/' for results.")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
