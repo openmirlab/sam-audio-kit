@@ -1,5 +1,5 @@
 """
-Basic usage example for sam-audio-infer.
+Basic usage example for sam-audio-kit.
 
 This example demonstrates how to:
 1. Load a SAM-Audio model with lite mode
@@ -9,7 +9,7 @@ This example demonstrates how to:
 
 from pathlib import Path
 
-from sam_audio_infer import SamAudioInfer
+from sam_audio_kit import SamAudioInfer
 
 
 def main():

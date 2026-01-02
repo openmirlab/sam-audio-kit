@@ -1,14 +1,15 @@
 """
-SAM-Audio-Infer: Optimized inference package for Meta's SAM-Audio model.
+SAM-Audio-Kit: Creative audio toolkit for Meta's SAM-Audio model.
 
-This package provides VRAM-efficient inference for SAM-Audio with features like:
+This package provides synthesis, effects, and VRAM-efficient inference for SAM-Audio:
+- Synthesis: Latent space manipulation, granular synthesis, audio effects
 - Lite mode: Remove unused components to reduce VRAM by ~40%
 - Mixed precision: bfloat16/float16 support
 - Auto-chunking: Process long audio files without OOM
 - Memory management: Automatic GPU cache cleanup
 
 Example:
-    >>> from sam_audio_infer import SamAudioInfer
+    >>> from sam_audio_kit import SamAudioInfer
     >>> model = SamAudioInfer.from_pretrained("facebook/sam-audio-base", lite_mode=True)
     >>> result = model.separate("audio.wav", description="vocals")
 

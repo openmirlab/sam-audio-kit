@@ -1,5 +1,5 @@
 """
-Lite mode demonstration for sam-audio-infer.
+Lite mode demonstration for sam-audio-kit.
 
 This example shows the VRAM savings achieved by lite mode
 compared to the full model.
@@ -7,7 +7,7 @@ compared to the full model.
 
 import torch
 
-from sam_audio_infer import (
+from sam_audio_kit import (
     SamAudioInfer,
     LiteModelConfig,
     cleanup_gpu_memory,
@@ -101,7 +101,7 @@ def main():
 
     print("\n3. Custom configuration:")
     print("""
-   from sam_audio_infer import LiteModelConfig
+   from sam_audio_kit import LiteModelConfig
 
    config = LiteModelConfig(
        remove_vision_encoder=True,   # ~2GB savings

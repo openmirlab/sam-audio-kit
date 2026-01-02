@@ -99,8 +99,8 @@ class LatentGranular:
     similarity matching to replace or remix audio in creative ways.
 
     Example:
-        >>> from sam_audio_infer import SamAudioInfer
-        >>> from sam_audio_infer.synth import LatentGranular, DACVAECodec
+        >>> from sam_audio_kit import SamAudioInfer
+        >>> from sam_audio_kit.synth import LatentGranular, DACVAECodec
         >>>
         >>> model = SamAudioInfer.from_pretrained("base")
         >>> codec = DACVAECodec(model)

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import torch
 
-from sam_audio_infer.chunking import AudioChunker, ChunkingConfig
+from sam_audio_kit.chunking import AudioChunker, ChunkingConfig
 
 
 class TestChunkingConfig:

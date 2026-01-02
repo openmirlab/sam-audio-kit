@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sam-audio-infer"
-version = "0.1.5"
-description = "Optimized inference package for Meta's SAM-Audio model with VRAM-efficient lite mode"
+name = "sam-audio-kit"
+version = "0.1.0"
+description = "Creative audio toolkit for Meta's SAM-Audio model with synthesis, effects, and VRAM-efficient inference"
 readme = "README.md"
 license = "MIT AND Apache-2.0"  # MIT for wrapper, Apache-2.0/Meta SAM for extracted code
 requires-python = ">=3.10"
@@ -15,10 +15,12 @@ authors = [
 keywords = [
     "audio",
     "separation",
+    "synthesis",
     "sam-audio",
     "deep-learning",
     "pytorch",
-    "inference",
+    "creative-audio",
+    "latent-space",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -76,19 +78,19 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/openmirlab/sam-audio-infer"
-Documentation = "https://github.com/openmirlab/sam-audio-infer#readme"
-Repository = "https://github.com/openmirlab/sam-audio-infer.git"
-Issues = "https://github.com/openmirlab/sam-audio-infer/issues"
+Homepage = "https://github.com/openmirlab/sam-audio-kit"
+Documentation = "https://github.com/openmirlab/sam-audio-kit#readme"
+Repository = "https://github.com/openmirlab/sam-audio-kit.git"
+Issues = "https://github.com/openmirlab/sam-audio-kit/issues"
 
 [project.scripts]
-sam-audio-infer = "sam_audio_infer.cli:main"
+sam-audio-kit = "sam_audio_kit.cli:main"
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/sam_audio_infer"]
+packages = ["src/sam_audio_kit"]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -115,4 +117,4 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=sam_audio_infer"
+addopts = "-v --cov=sam_audio_kit"

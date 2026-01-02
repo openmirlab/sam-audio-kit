@@ -73,7 +73,7 @@ result = model.separate("long_song.wav", "vocals", chunk_duration=30.0)
 The first inference is slower due to CUDA kernel compilation. Warmup pre-compiles these:
 
 ```python
-from sam_audio_infer import warmup_model
+from sam_audio_kit import warmup_model
 
 # After loading model
 warmup_model(model, duration_seconds=1.0)

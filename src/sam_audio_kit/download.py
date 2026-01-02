@@ -7,7 +7,7 @@ This module provides standalone functions to:
 
 Environment Variables:
     SAM_AUDIO_CACHE_DIR: Directory to cache downloaded models
-                         Default: ~/.cache/sam-audio-infer
+                         Default: ~/.cache/sam-audio-kit
     HF_TOKEN: HuggingFace API token for gated models
 """
 
@@ -34,7 +34,7 @@ ENV_HF_TOKEN = "HF_TOKEN"
 ENV_HF_TOKEN_ALT = "HUGGINGFACE_TOKEN"
 
 # Default cache directory
-DEFAULT_CACHE_DIR = Path.home() / ".cache" / "sam-audio-infer"
+DEFAULT_CACHE_DIR = Path.home() / ".cache" / "sam-audio-kit"
 
 
 def get_cache_dir() -> Path:
@@ -43,7 +43,7 @@ def get_cache_dir() -> Path:
 
     Priority:
     1. SAM_AUDIO_CACHE_DIR environment variable
-    2. Default: ~/.cache/sam-audio-infer
+    2. Default: ~/.cache/sam-audio-kit
 
     Returns:
         Path to the cache directory
@@ -79,7 +79,7 @@ def download_model(
 
     Args:
         model_size: Model size ("small", "base", "large") or HuggingFace model ID
-        cache_dir: Directory to cache models (default: from env or ~/.cache/sam-audio-infer)
+        cache_dir: Directory to cache models (default: from env or ~/.cache/sam-audio-kit)
         hf_token: HuggingFace API token (default: from HF_TOKEN env var)
         include_judge: Also download the sam-audio-judge model for quality assessment
         verbose: Print download progress
@@ -88,7 +88,7 @@ def download_model(
         Path to the cache directory
 
     Example:
-        >>> from sam_audio_infer import download_model
+        >>> from sam_audio_kit import download_model
         >>> # Download to default cache
         >>> download_model("base")
 
@@ -290,7 +290,7 @@ def list_cached_models(cache_dir: Optional[Union[str, Path]] = None) -> list[dic
     List models that are cached locally.
 
     Args:
-        cache_dir: Directory to check (default: from env or ~/.cache/sam-audio-infer)
+        cache_dir: Directory to check (default: from env or ~/.cache/sam-audio-kit)
 
     Returns:
         List of dicts with model info
@@ -332,7 +332,7 @@ def clear_cache(
     Clear cached model files.
 
     Args:
-        cache_dir: Directory to clear (default: from env or ~/.cache/sam-audio-infer)
+        cache_dir: Directory to clear (default: from env or ~/.cache/sam-audio-kit)
         model_size: Only clear specific model size (None = clear all)
         verbose: Print progress
     """

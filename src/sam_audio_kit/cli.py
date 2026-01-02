@@ -1,4 +1,4 @@
-"""Command-line interface for sam-audio-infer."""
+"""Command-line interface for sam-audio-kit."""
 
 import argparse
 import sys
@@ -177,7 +177,7 @@ def main():
     parser.add_argument(
         "--version",
         action="version",
-        version="sam-audio-infer 0.1.1",
+        version="sam-audio-kit 0.1.1",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -190,13 +190,13 @@ def main():
         epilog="""
 Examples:
   # Basic separation (~3 GB VRAM)
-  sam-audio-infer separate input.wav -d "vocals" -o vocals.wav
+  sam-audio-kit separate input.wav -d "vocals" -o vocals.wav
 
   # With residual output
-  sam-audio-infer separate input.wav -d "drums" -o drums.wav --residual other.wav
+  sam-audio-kit separate input.wav -d "drums" -o drums.wav --residual other.wav
 
   # With text ranker for better quality (+3 GB VRAM)
-  sam-audio-infer separate input.wav -d "piano" -o piano.wav --enable-text-ranker
+  sam-audio-kit separate input.wav -d "piano" -o piano.wav --enable-text-ranker
         """,
     )
     sep_parser.add_argument("input", type=str, help="Input audio file path")
@@ -293,7 +293,7 @@ Examples:
         "--cache-dir",
         type=str,
         default=None,
-        help="Directory for cached models (default: $SAM_AUDIO_CACHE_DIR or ~/.cache/sam-audio-infer)",
+        help="Directory for cached models (default: $SAM_AUDIO_CACHE_DIR or ~/.cache/sam-audio-kit)",
     )
     sep_parser.add_argument(
         "--hf-token",
@@ -320,17 +320,17 @@ Examples:
         epilog="""
 Examples:
   # Download base model
-  sam-audio-infer download --model base
+  sam-audio-kit download --model base
 
   # Download and warmup for production
-  sam-audio-infer download --model base --warmup
+  sam-audio-kit download --model base --warmup
 
   # Download to custom directory
-  sam-audio-infer download --model base --cache-dir /models/sam-audio
+  sam-audio-kit download --model base --cache-dir /models/sam-audio
 
   # Using environment variable
   export SAM_AUDIO_CACHE_DIR=/models/sam-audio
-  sam-audio-infer download --model base
+  sam-audio-kit download --model base
         """,
     )
     dl_parser.add_argument(
@@ -344,7 +344,7 @@ Examples:
         "--cache-dir",
         type=str,
         default=None,
-        help="Directory to cache models (default: $SAM_AUDIO_CACHE_DIR or ~/.cache/sam-audio-infer)",
+        help="Directory to cache models (default: $SAM_AUDIO_CACHE_DIR or ~/.cache/sam-audio-kit)",
     )
     dl_parser.add_argument(
         "--hf-token",
@@ -403,7 +403,7 @@ Examples:
         "--cache-dir",
         type=str,
         default=None,
-        help="Directory to check (default: $SAM_AUDIO_CACHE_DIR or ~/.cache/sam-audio-infer)",
+        help="Directory to check (default: $SAM_AUDIO_CACHE_DIR or ~/.cache/sam-audio-kit)",
     )
 
     # ============ CLEAR COMMAND ============
@@ -422,7 +422,7 @@ Examples:
         "--cache-dir",
         type=str,
         default=None,
-        help="Directory to clear (default: $SAM_AUDIO_CACHE_DIR or ~/.cache/sam-audio-infer)",
+        help="Directory to clear (default: $SAM_AUDIO_CACHE_DIR or ~/.cache/sam-audio-kit)",
     )
     clear_parser.add_argument(
         "-y", "--yes",

@@ -10,8 +10,8 @@ enabling workflows like:
 - Sound Design: Create new sounds from separated elements
 
 Example:
-    >>> from sam_audio_infer import SamAudioInfer
-    >>> from sam_audio_infer.synth import LatentSynthesizer
+    >>> from sam_audio_kit import SamAudioInfer
+    >>> from sam_audio_kit.synth import LatentSynthesizer
     >>>
     >>> # Load model
     >>> model = SamAudioInfer.from_pretrained("base")

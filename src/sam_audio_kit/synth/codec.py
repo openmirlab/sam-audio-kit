@@ -103,8 +103,8 @@ class DACVAECodec:
     - Latent space manipulation
 
     Example:
-        >>> from sam_audio_infer import SamAudioInfer
-        >>> from sam_audio_infer.synth import DACVAECodec
+        >>> from sam_audio_kit import SamAudioInfer
+        >>> from sam_audio_kit.synth import DACVAECodec
         >>>
         >>> model = SamAudioInfer.from_pretrained("base")
         >>> codec = DACVAECodec(model)

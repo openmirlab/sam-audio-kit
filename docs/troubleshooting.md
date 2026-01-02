@@ -43,14 +43,14 @@ The first inference is slower due to CUDA kernel compilation:
 
 ```python
 # Use warmup
-from sam_audio_infer import warmup_model
+from sam_audio_kit import warmup_model
 warmup_model(model, duration_seconds=1.0)
 ```
 
 Or via CLI:
 
 ```bash
-sam-audio-infer download --model base --warmup
+sam-audio-kit download --model base --warmup
 ```
 
 ### CUDA not available
@@ -85,14 +85,14 @@ export SAM_AUDIO_CACHE_DIR=/path/to/writable/directory
 For reproducible results:
 
 ```bash
-sam-audio-infer separate audio.wav -d "vocals" -o out.wav \
+sam-audio-kit separate audio.wav -d "vocals" -o out.wav \
     --deterministic --no-cudnn-benchmark --no-tf32 --matmul-precision highest
 ```
 
 Or in Python:
 
 ```python
-from sam_audio_infer import SamAudioInfer, PrecisionConfig
+from sam_audio_kit import SamAudioInfer, PrecisionConfig
 
 config = PrecisionConfig(
     matmul_precision="highest",

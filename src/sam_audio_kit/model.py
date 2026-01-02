@@ -140,7 +140,7 @@ class SamAudioInfer:
             ... )
 
             >>> # With custom precision settings
-            >>> from sam_audio_infer import PrecisionConfig
+            >>> from sam_audio_kit import PrecisionConfig
             >>> config = PrecisionConfig(matmul_precision="medium")
             >>> model = SamAudioInfer.from_pretrained("base", precision_config=config)
         """
@@ -199,7 +199,7 @@ class SamAudioInfer:
                     f"may be insufficient (need ~{estimated_vram:.1f} GB)"
                 )
 
-        # Import SAM-Audio (extracted and bundled within sam-audio-infer)
+        # Import SAM-Audio (extracted and bundled within sam-audio-kit)
         from .sam_audio import SAMAudio, SAMAudioProcessor
 
         # Load model and processor

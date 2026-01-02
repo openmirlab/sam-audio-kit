@@ -69,7 +69,7 @@ def run_benchmark(
     dtype: str,
 ) -> BenchmarkResult:
     """Run a single benchmark."""
-    from sam_audio_infer import SamAudioInfer, LiteModelConfig
+    from sam_audio_kit import SamAudioInfer, LiteModelConfig
 
     # Clean and get baseline
     cleanup_gpu()

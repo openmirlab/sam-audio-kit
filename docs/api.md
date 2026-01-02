@@ -5,7 +5,7 @@
 Main class for audio separation.
 
 ```python
-from sam_audio_infer import SamAudioInfer
+from sam_audio_kit import SamAudioInfer
 
 # Load model
 model = SamAudioInfer.from_pretrained(
@@ -71,7 +71,7 @@ result.save("vocals.wav")  # Only save target
 ## Download Functions
 
 ```python
-from sam_audio_infer import (
+from sam_audio_kit import (
     download_model,
     download_and_warmup,
     warmup_model,
@@ -121,7 +121,7 @@ clear_cache(cache_dir=None, model_size=None, verbose=True)
 ## Memory Management
 
 ```python
-from sam_audio_infer import (
+from sam_audio_kit import (
     cleanup_gpu_memory,
     get_gpu_memory_info,
     GPUMemoryInfo,
@@ -147,7 +147,7 @@ cleanup_gpu_memory()
 Configure numerical precision settings.
 
 ```python
-from sam_audio_infer import PrecisionConfig
+from sam_audio_kit import PrecisionConfig
 
 # Fast inference
 config = PrecisionConfig(

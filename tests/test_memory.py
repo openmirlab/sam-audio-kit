@@ -2,7 +2,7 @@
 
 import pytest
 
-from sam_audio_infer.memory import (
+from sam_audio_kit.memory import (
     GPUMemoryInfo,
     cleanup_gpu_memory,
     get_gpu_memory_info,

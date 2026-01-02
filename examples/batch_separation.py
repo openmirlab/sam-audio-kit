@@ -1,5 +1,5 @@
 """
-Batch separation example for sam-audio-infer.
+Batch separation example for sam-audio-kit.
 
 This example demonstrates how to separate multiple stems
 from a single audio file.
@@ -7,7 +7,7 @@ from a single audio file.
 
 from pathlib import Path
 
-from sam_audio_infer import SamAudioInfer, cleanup_gpu_memory
+from sam_audio_kit import SamAudioInfer, cleanup_gpu_memory
 
 
 def main():

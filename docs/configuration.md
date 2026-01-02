@@ -30,7 +30,7 @@
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SAM_AUDIO_CACHE_DIR` | Model cache directory | `~/.cache/sam-audio-infer` |
+| `SAM_AUDIO_CACHE_DIR` | Model cache directory | `~/.cache/sam-audio-kit` |
 | `HF_TOKEN` | HuggingFace API token | None |
 | `HUGGINGFACE_TOKEN` | Alternative HF token | None |
 | `SAM_AUDIO_TF32` | Enable TF32 | `true` |
@@ -80,15 +80,15 @@ export SAM_AUDIO_DETERMINISTIC=false          # default: false
 
 ```bash
 # Fast inference (max speed)
-sam-audio-infer separate audio.wav -d "vocals" -o out.wav \
+sam-audio-kit separate audio.wav -d "vocals" -o out.wav \
     --matmul-precision medium
 
 # Maximum quality
-sam-audio-infer separate audio.wav -d "vocals" -o out.wav \
+sam-audio-kit separate audio.wav -d "vocals" -o out.wav \
     --no-tf32 --matmul-precision highest
 
 # Reproducible results
-sam-audio-infer separate audio.wav -d "vocals" -o out.wav \
+sam-audio-kit separate audio.wav -d "vocals" -o out.wav \
     --deterministic --no-cudnn-benchmark
 ```
 

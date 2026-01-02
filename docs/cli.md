@@ -3,7 +3,7 @@
 ## Commands Overview
 
 ```bash
-sam-audio-infer --help
+sam-audio-kit --help
 ```
 
 | Command | Description |
@@ -18,7 +18,7 @@ sam-audio-infer --help
 Separate audio based on text description.
 
 ```bash
-sam-audio-infer separate <input> -d <description> -o <output> [options]
+sam-audio-kit separate <input> -d <description> -o <output> [options]
 ```
 
 | Option | Description | Default |
@@ -53,22 +53,22 @@ sam-audio-infer separate <input> -d <description> -o <output> [options]
 
 ```bash
 # Basic usage (~3 GB VRAM)
-sam-audio-infer separate song.wav -d "vocals" -o vocals.wav
+sam-audio-kit separate song.wav -d "vocals" -o vocals.wav
 
 # Extract drums with residual
-sam-audio-infer separate song.wav -d "drums" -o drums.wav --residual other.wav
+sam-audio-kit separate song.wav -d "drums" -o drums.wav --residual other.wav
 
 # Use large model with warmup
-sam-audio-infer separate song.wav -d "bass" -o bass.wav --model large --warmup -v
+sam-audio-kit separate song.wav -d "bass" -o bass.wav --model large --warmup -v
 
 # Enable text ranker for better quality (+3 GB VRAM)
-sam-audio-infer separate song.wav -d "vocals" -o vocals.wav --enable-text-ranker
+sam-audio-kit separate song.wav -d "vocals" -o vocals.wav --enable-text-ranker
 
 # Fast inference
-sam-audio-infer separate audio.wav -d "vocals" -o out.wav --matmul-precision medium
+sam-audio-kit separate audio.wav -d "vocals" -o out.wav --matmul-precision medium
 
 # Maximum quality
-sam-audio-infer separate audio.wav -d "vocals" -o out.wav --no-tf32 --matmul-precision highest
+sam-audio-kit separate audio.wav -d "vocals" -o out.wav --no-tf32 --matmul-precision highest
 ```
 
 ## download
@@ -76,7 +76,7 @@ sam-audio-infer separate audio.wav -d "vocals" -o out.wav --no-tf32 --matmul-pre
 Download and cache model files.
 
 ```bash
-sam-audio-infer download [options]
+sam-audio-kit download [options]
 ```
 
 | Option | Description | Default |
@@ -95,15 +95,15 @@ sam-audio-infer download [options]
 
 ```bash
 # Download base model
-sam-audio-infer download --model base
+sam-audio-kit download --model base
 
 # Download and warmup for production deployment
-sam-audio-infer download --model base --warmup
+sam-audio-kit download --model base --warmup
 
 # Download all sizes
-sam-audio-infer download --model small
-sam-audio-infer download --model base
-sam-audio-infer download --model large
+sam-audio-kit download --model small
+sam-audio-kit download --model base
+sam-audio-kit download --model large
 ```
 
 ## list
@@ -111,7 +111,7 @@ sam-audio-infer download --model large
 List cached models.
 
 ```bash
-sam-audio-infer list [--cache-dir DIR]
+sam-audio-kit list [--cache-dir DIR]
 ```
 
 ## clear
@@ -119,7 +119,7 @@ sam-audio-infer list [--cache-dir DIR]
 Clear cached models.
 
 ```bash
-sam-audio-infer clear [options]
+sam-audio-kit clear [options]
 ```
 
 | Option | Description | Default |

@@ -1,1 +1,1 @@
-"""Tests for sam-audio-infer."""
+"""Tests for sam-audio-kit."""
