@@ -26,31 +26,21 @@ from sam_audio_kit import SamAudio, cleanup_gpu_memory
 # =============================================================================
 
 # Input audio file (or None to use generated white noise)
-AUDIO_PATH = None  # e.g., "./assets/song.wav" or None for white noise
+AUDIO_PATH = "/home/worzpro/Desktop/dev/patched_modules/sam-audio-kit/assets/guitar_loop.wav"
 
-# Duration in seconds (for white noise, or to trim input audio)
-DURATION = 10.0
+# Duration in seconds (None = full length, or trim to this duration)
+DURATION = None
 
 # What to iteratively remove (each step uses the previous residual)
-# Try different removal sequences for different effects:
-#
-# Wind texture from noise:
-#   ["sharp transients", "low rumble", "high hiss", "periodic components"]
-#
-# Vintage radio effect:
-#   ["deep bass below 100Hz", "bright highs above 8kHz", "stereo width", "modern clarity"]
-#
-# Audio restoration:
-#   ["vinyl crackle", "tape hiss", "60Hz hum", "room reverb", "background noise"]
-#
-# Semantic EQ:
-#   ["harsh sibilance", "muddy low-mids", "boxy resonances", "digital harshness"]
+# SAM-Audio works best with musical/audio element descriptions like:
+#   - "vocals", "drums", "bass", "guitar", "piano", "strings"
+#   - "high frequencies", "low frequencies"
+#   - "reverb", "room ambience"
 #
 REMOVAL_DESCRIPTIONS = [
-    "sharp transient sounds and clicks",
-    "low frequency rumble",
-    "high frequency hiss",
-    "periodic and repetitive components",
+    "pick attack and string noise",
+    "high frequency harmonics",
+    "room reverb and ambience",
 ]
 
 # Save intermediate results for each removal step
