@@ -8,6 +8,10 @@ This example demonstrates creative audio manipulation in latent space:
 4. Tonal enhancement (brightness, warmth, presence)
 5. Time stretching and reversing
 6. Multi-source blending
+
+Two modes are supported:
+- WITH SAM-Audio: Separate stems from a song, then apply effects
+- WITHOUT SAM-Audio: Use existing audio files directly
 """
 
 from pathlib import Path
@@ -16,18 +20,38 @@ from sam_audio_kit import SamAudio, cleanup_gpu_memory
 from sam_audio_kit.synth import LatentSynthesizer
 
 
-def main():
-    # Paths to your audio files
-    audio_path_1 = "path/to/song1.wav"
-    audio_path_2 = "path/to/song2.wav"
+# =============================================================================
+# CONFIGURATION - Choose your mode
+# =============================================================================
 
-    # Check if files exist
-    if not Path(audio_path_1).exists() or not Path(audio_path_2).exists():
-        print("Please update audio paths to point to actual audio files")
-        print("Example:")
-        print("  audio_path_1 = '/home/user/music/vocals.wav'")
-        print("  audio_path_2 = '/home/user/music/drums.wav'")
-        return
+# Set to True to use SAM-Audio separation, False to use existing audio files
+USE_SAM_AUDIO_SEPARATION = False
+
+# For USE_SAM_AUDIO_SEPARATION = True: path to song and what to separate
+SONG_PATH = "path/to/your/song.wav"
+SEPARATION_1 = "vocals"
+SEPARATION_2 = "drums and percussion"
+
+# For USE_SAM_AUDIO_SEPARATION = False: paths to existing audio files
+AUDIO_PATH_1 = "path/to/audio1.wav"
+AUDIO_PATH_2 = "path/to/audio2.wav"
+
+
+def main():
+    import torchaudio
+
+    # Validate paths based on mode
+    if USE_SAM_AUDIO_SEPARATION:
+        if not Path(SONG_PATH).exists():
+            print("Please update 'SONG_PATH' to point to an actual audio file")
+            return
+    else:
+        if not Path(AUDIO_PATH_1).exists() or not Path(AUDIO_PATH_2).exists():
+            print("Please update audio paths to point to actual audio files")
+            print("Example:")
+            print("  AUDIO_PATH_1 = '/home/user/music/vocals.wav'")
+            print("  AUDIO_PATH_2 = '/home/user/music/drums.wav'")
+            return
 
     # Load model
     print("Loading SAM-Audio model...")
@@ -45,15 +69,41 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # =========================================================================
+    # Get audio sources (either separate or load existing)
+    # =========================================================================
+    print("\n" + "=" * 50)
+    if USE_SAM_AUDIO_SEPARATION:
+        print("Loading audio via SAM-Audio separation")
+        print("=" * 50)
+
+        result_1 = model.separate(SONG_PATH, SEPARATION_1, verbose=True)
+        result_2 = model.separate(SONG_PATH, SEPARATION_2, verbose=True)
+        audio_1 = result_1.target
+        audio_2 = result_2.target
+
+        # Save separated sources for reference
+        result_1.save(output_dir / f"source_{SEPARATION_1.replace(' ', '_')}.wav")
+        result_2.save(output_dir / f"source_{SEPARATION_2.replace(' ', '_')}.wav")
+    else:
+        print("Loading existing audio files")
+        print("=" * 50)
+
+        audio_1, _ = torchaudio.load(AUDIO_PATH_1)
+        audio_2, _ = torchaudio.load(AUDIO_PATH_2)
+
+        print(f"  Source 1: {AUDIO_PATH_1}")
+        print(f"  Source 2: {AUDIO_PATH_2}")
+
+    # =========================================================================
     # Example 1: Interpolation
     # =========================================================================
     print("\n" + "=" * 50)
     print("Example 1: Interpolation between two sources")
     print("=" * 50)
 
-    # Encode both audio files to latent space
-    latent_1 = synth.encode(audio_path_1)
-    latent_2 = synth.encode(audio_path_2)
+    # Encode both audio sources to latent space
+    latent_1 = synth.encode(audio_1)
+    latent_2 = synth.encode(audio_2)
 
     # Create interpolated versions (0.0 = 100% source 1, 1.0 = 100% source 2)
     for alpha in [0.25, 0.5, 0.75]:

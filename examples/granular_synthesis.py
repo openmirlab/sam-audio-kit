@@ -7,6 +7,10 @@ This example demonstrates latent granular synthesis:
 3. Remix with weighted sources
 4. Create random collages
 
+Two modes are supported:
+- WITH SAM-Audio: Separate stems from a song, then use them for granular synthesis
+- WITHOUT SAM-Audio: Use existing audio files directly (pre-separated stems, samples, etc.)
+
 The approach is inspired by Naotokui's latent granular synthesis work.
 """
 
@@ -16,15 +20,40 @@ from sam_audio_kit import SamAudio, cleanup_gpu_memory
 from sam_audio_kit.synth import LatentSynthesizer
 
 
-def main():
-    # Path to your audio file
-    audio_path = "path/to/your/song.wav"
+# =============================================================================
+# CONFIGURATION - Choose your mode
+# =============================================================================
 
-    # Check if file exists
-    if not Path(audio_path).exists():
-        print("Please update 'audio_path' to point to an actual audio file")
-        print("Example: audio_path = '/home/user/music/song.wav'")
-        return
+# Set to True to use SAM-Audio separation, False to use existing audio files
+USE_SAM_AUDIO_SEPARATION = True
+
+# For USE_SAM_AUDIO_SEPARATION = True: path to song to separate
+SONG_PATH = "path/to/your/song.wav"
+
+# For USE_SAM_AUDIO_SEPARATION = False: paths to existing audio files
+AUDIO_FILES = {
+    "drums": "path/to/drums.wav",
+    "bass": "path/to/bass.wav",
+    "vocals": "path/to/vocals.wav",  # Used as guide
+}
+
+
+def main():
+    import torchaudio
+
+    # Validate paths based on mode
+    if USE_SAM_AUDIO_SEPARATION:
+        if not Path(SONG_PATH).exists():
+            print("Please update 'SONG_PATH' to point to an actual audio file")
+            print("Example: SONG_PATH = '/home/user/music/song.wav'")
+            return
+    else:
+        missing = [k for k, v in AUDIO_FILES.items() if not Path(v).exists()]
+        if missing:
+            print("Please update 'AUDIO_FILES' paths. Missing:")
+            for k in missing:
+                print(f"  {k}: {AUDIO_FILES[k]}")
+            return
 
     # Load model
     print("Loading SAM-Audio model...")
@@ -42,21 +71,34 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # =========================================================================
-    # Step 1: Separate stems from the song
+    # Step 1: Get audio sources (either separate or load existing)
     # =========================================================================
     print("\n" + "=" * 50)
-    print("Step 1: Separating stems")
-    print("=" * 50)
+    if USE_SAM_AUDIO_SEPARATION:
+        print("Step 1: Separating stems with SAM-Audio")
+        print("=" * 50)
 
-    vocals = model.separate(audio_path, "vocals", verbose=True)
-    drums = model.separate(audio_path, "drums and percussion", verbose=True)
-    bass = model.separate(audio_path, "bass", verbose=True)
+        vocals = model.separate(SONG_PATH, "vocals", verbose=True)
+        drums = model.separate(SONG_PATH, "drums and percussion", verbose=True)
+        bass = model.separate(SONG_PATH, "bass", verbose=True)
 
-    # Save original stems for reference
-    vocals.save(output_dir / "original_vocals.wav")
-    drums.save(output_dir / "original_drums.wav")
-    bass.save(output_dir / "original_bass.wav")
-    print("  Original stems saved")
+        # Save separated stems for reference
+        vocals.save(output_dir / "original_vocals.wav")
+        drums.save(output_dir / "original_drums.wav")
+        bass.save(output_dir / "original_bass.wav")
+        print("  Separated stems saved")
+    else:
+        print("Step 1: Loading existing audio files")
+        print("=" * 50)
+
+        # Load audio files directly as tensors
+        drums, _ = torchaudio.load(AUDIO_FILES["drums"])
+        bass, _ = torchaudio.load(AUDIO_FILES["bass"])
+        vocals, _ = torchaudio.load(AUDIO_FILES["vocals"])
+
+        print(f"  Loaded drums: {AUDIO_FILES['drums']}")
+        print(f"  Loaded bass: {AUDIO_FILES['bass']}")
+        print(f"  Loaded vocals: {AUDIO_FILES['vocals']}")
 
     # =========================================================================
     # Step 2: Build grain database
