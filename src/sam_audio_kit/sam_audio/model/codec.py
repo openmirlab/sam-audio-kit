@@ -1,13 +1,34 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates. All Rights Reserved\n
+#
+# codec.py -- Neural audio codec (DACVAE) wrapper used by the core SAM-Audio
+# model to turn waveforms into latent frames and back. This is the one place
+# in sam-audio-kit that imports the external `dacvae` package, which is
+# intentionally NOT a declared project dependency (see pyproject.toml and
+# README.md "Installing the audio codec (dacvae)"): it has no PyPI release,
+# and PyPI rejects any package metadata containing a direct git/URL
+# dependency. Reads: DACVAEConfig (.config).
 
 import math
 from abc import ABCMeta, abstractmethod
 from typing import Union
 
-import dacvae
 import torch
 
 from .config import DACVAEConfig
+
+try:
+    import dacvae
+except ImportError as exc:  # pragma: no cover - exercised only when dacvae is absent
+    raise ImportError(
+        "sam-audio-kit requires the 'dacvae' neural audio codec to run the "
+        "SAM-Audio model, but it is not installed. It is intentionally left "
+        "out of this package's declared dependencies because it has no PyPI "
+        "release and pip/PyPI cannot resolve git-URL dependencies as package "
+        "metadata (PyPI rejects direct references in Requires-Dist, even "
+        "under an extra). Install it manually, then retry:\n\n"
+        "    pip install 'dacvae @ git+https://github.com/facebookresearch/dacvae'\n\n"
+        "See README.md > 'Installing the audio codec (dacvae)' for details."
+    ) from exc
 
 
 class Encoder(torch.nn.Module, metaclass=ABCMeta):
