@@ -13,12 +13,12 @@ class TestChunkingConfig:
     def test_default_config(self):
         config = ChunkingConfig()
         assert config.chunk_duration == 25.0
-        assert config.sample_rate == 16000
+        assert config.sample_rate == 48000
         assert config.overlap_duration == 0.0
 
     def test_chunk_samples(self):
-        config = ChunkingConfig(chunk_duration=10.0, sample_rate=16000)
-        assert config.chunk_samples == 160000
+        config = ChunkingConfig(chunk_duration=10.0, sample_rate=48000)
+        assert config.chunk_samples == 480000
 
     def test_invalid_chunk_duration(self):
         with pytest.raises(ValueError):
@@ -33,25 +33,25 @@ class TestAudioChunker:
     """Tests for AudioChunker."""
 
     def test_needs_chunking_short_audio(self):
-        chunker = AudioChunker(chunk_duration=10.0, sample_rate=16000)
+        chunker = AudioChunker(chunk_duration=10.0, sample_rate=48000)
         # 5 seconds of audio
         audio = torch.randn(80000)
         assert not chunker.needs_chunking(audio)
 
     def test_needs_chunking_long_audio(self):
-        chunker = AudioChunker(chunk_duration=10.0, sample_rate=16000)
+        chunker = AudioChunker(chunk_duration=10.0, sample_rate=48000)
         # 30 seconds of audio
         audio = torch.randn(480000)
         assert chunker.needs_chunking(audio)
 
     def test_get_num_chunks(self):
-        chunker = AudioChunker(chunk_duration=10.0, sample_rate=16000)
+        chunker = AudioChunker(chunk_duration=10.0, sample_rate=48000)
         # 25 seconds of audio
         audio = torch.randn(400000)
         assert chunker.get_num_chunks(audio) == 3
 
     def test_chunk_iteration(self):
-        chunker = AudioChunker(chunk_duration=10.0, sample_rate=16000)
+        chunker = AudioChunker(chunk_duration=10.0, sample_rate=48000)
         audio = torch.randn(400000)  # 25 seconds
 
         chunks = list(chunker.chunk(audio))
@@ -62,17 +62,17 @@ class TestAudioChunker:
         assert chunks[-1].chunk_index == 2
 
     def test_merge_chunks(self):
-        chunker = AudioChunker(chunk_duration=10.0, sample_rate=16000)
+        chunker = AudioChunker(chunk_duration=10.0, sample_rate=48000)
 
         # Create some fake chunks
-        chunks = [torch.randn(160000) for _ in range(3)]
+        chunks = [torch.randn(480000) for _ in range(3)]
         merged = chunker.merge(chunks, crossfade=False)
 
         # Should be concatenated
         assert merged.shape[0] == 480000
 
     def test_chunk_with_stereo(self):
-        chunker = AudioChunker(chunk_duration=10.0, sample_rate=16000)
+        chunker = AudioChunker(chunk_duration=10.0, sample_rate=48000)
         audio = torch.randn(400000, 2)  # 25 seconds, stereo
 
         chunks = list(chunker.chunk(audio))
