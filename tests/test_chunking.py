@@ -13,7 +13,7 @@ class TestChunkingConfig:
     def test_default_config(self):
         config = ChunkingConfig()
         assert config.chunk_duration == 25.0
-        assert config.sample_rate == 16000
+        assert config.sample_rate == 48000  # SAM-Audio pipeline is 48 kHz (model.py fallback); 16000 was stale
         assert config.overlap_duration == 0.0
 
     def test_chunk_samples(self):
