@@ -33,6 +33,7 @@ open-source audio AI.
 __version__ = "0.1.0"
 
 from .model import SamAudio
+from .sam_audio.model import EncodedAudio
 from .lite import (
     create_lite_model,
     LiteModelConfig,
@@ -73,6 +74,7 @@ from .precision import (
 __all__ = [
     # Main class
     "SamAudio",
+    "EncodedAudio",
     # Lite mode
     "create_lite_model",
     "LiteModelConfig",

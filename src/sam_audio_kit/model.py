@@ -327,6 +327,51 @@ class SamAudio:
             verbose=verbose,
         )
 
+    def encode_audio(self, audio: AudioInput, description: str):
+        """
+        Encode audio features for reuse in separate_with_embedding().
+
+        Args:
+            audio: Audio file path, numpy array, or torch tensor.
+            description: Text description (needed for processor batch construction
+                only — text is NOT encoded here, use encode_text() separately).
+
+        Returns:
+            Tuple of (encoded_audio, batch) for use with separate_with_embedding().
+        """
+        model_sample_rate = self.sample_rate
+        audio_tensor, sr = load_audio(audio, target_sample_rate=model_sample_rate, device="cpu")
+        batch = self._processor(descriptions=[description], audios=[audio_tensor])
+        batch = batch.to(self._device)
+        torch_dtype = get_torch_dtype(self._dtype)
+        device_type = self._device if self._device != "mps" else "cpu"
+        with torch.autocast(device_type=device_type, dtype=torch_dtype):
+            encoded = self._model.encode_audio(batch)
+        return encoded, batch
+
+    def encode_text(self, texts: list[str]):
+        """
+        Encode text descriptions to T5 embeddings (detached).
+
+        Returns:
+            Tuple of (text_features, text_mask).
+        """
+        return self._model.encode_text(texts)
+
+    def separate_with_embedding(self, encoded_audio, text_embedding, text_mask, **kwargs):
+        """
+        Differentiable separation with a raw text embedding.
+
+        Gradients flow through text_embedding. See SAMAudio.separate_with_embedding()
+        for full documentation.
+
+        Returns:
+            Waveform tensor [B, 2, num_samples].
+        """
+        return self._model.separate_with_embedding(
+            encoded_audio, text_embedding, text_mask, **kwargs
+        )
+
     def separate_batch(
         self,
         audio: AudioInput,

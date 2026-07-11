@@ -49,7 +49,7 @@ class SeparationResult:
         elif target.dim() == 2 and target.shape[0] > target.shape[1]:
             target = target.T
 
-        torchaudio.save(str(target_path), target.cpu(), self.sample_rate)
+        torchaudio.save(str(target_path), target.cpu().float(), self.sample_rate)
 
         if residual_path is not None:
             residual = self.residual
@@ -58,7 +58,7 @@ class SeparationResult:
             elif residual.dim() == 2 and residual.shape[0] > residual.shape[1]:
                 residual = residual.T
 
-            torchaudio.save(str(residual_path), residual.cpu(), self.sample_rate)
+            torchaudio.save(str(residual_path), residual.cpu().float(), self.sample_rate)
 
 
 def load_audio(

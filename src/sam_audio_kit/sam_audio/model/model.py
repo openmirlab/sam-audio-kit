@@ -66,6 +66,17 @@ class EmbedAnchors(torch.nn.Module):
 
 
 @dataclass
+class EncodedAudio:
+    """Pre-encoded audio features for reuse across multiple separations."""
+    audio_features: torch.Tensor       # [B, T, 2C]
+    masked_video_features: torch.Tensor  # [B, vision_dim, T]
+    anchor_ids: torch.Tensor           # [B, num_anchors]
+    anchor_alignment: torch.Tensor     # [B, T]
+    audio_pad_mask: torch.Tensor       # [B, T]
+    sizes: torch.Tensor                # [B]
+
+
+@dataclass
 class SeparationResult:
     target: torch.Tensor
     residual: torch.Tensor
@@ -252,6 +263,7 @@ class SAMAudio(BaseModel):
         ode_opt: Dict[str, Any] = DFLT_ODE_OPT,
         reranking_candidates: int = 1,
         predict_spans: bool = False,
+        return_all_candidates: bool = False,
     ) -> SeparationResult:
         # Encode audio
         forward_args = self._get_forward_args(batch, candidates=reranking_candidates)
@@ -303,6 +315,13 @@ class SAMAudio(BaseModel):
             wavs[:, 1].view(bsz, reranking_candidates, -1), sizes
         )
 
+        if return_all_candidates:
+            return SeparationResult(
+                target=target_wavs,
+                residual=residual_wavs,
+                noise=noise,
+            )
+
         if (
             reranking_candidates > 1
             and batch.masked_video is not None
@@ -337,6 +356,121 @@ class SAMAudio(BaseModel):
             noise=noise,
         )
 
+    # --- Differentiable API ---
+
+    def encode_audio(self, batch: Batch) -> EncodedAudio:
+        """
+        Encode audio features from a batch for reuse across multiple separations.
+
+        The audio encoding uses no_grad internally (DACVAE encoder), so the
+        returned features are not differentiable w.r.t. the input audio.
+        This is by design — in optimization workflows, the audio is fixed.
+
+        Args:
+            batch: Processed batch from SAMAudioProcessor.
+
+        Returns:
+            EncodedAudio with all audio-side tensors needed for
+            separate_with_embedding().
+        """
+        with torch.no_grad():
+            audio_features = self._get_audio_features(batch.audios)
+            masked_video_features = self._get_video_features(
+                batch.masked_video, audio_features
+            )
+        return EncodedAudio(
+            audio_features=audio_features,
+            masked_video_features=masked_video_features,
+            anchor_ids=batch.anchor_ids,
+            anchor_alignment=batch.anchor_alignment,
+            audio_pad_mask=batch.audio_pad_mask,
+            sizes=batch.sizes,
+        )
+
+    def encode_text(self, texts: list[str]) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Encode text descriptions to T5 embeddings.
+
+        Returns detached tensors suitable for cloning into a nn.Parameter
+        for optimization workflows.
+
+        Args:
+            texts: List of text descriptions.
+
+        Returns:
+            Tuple of (text_features [B, T_text, 768], text_mask [B, T_text]).
+            Both are detached from the computation graph.
+        """
+        with torch.no_grad():
+            features, mask = self.text_encoder(texts)
+        return features.detach(), mask.detach()
+
+    def separate_with_embedding(
+        self,
+        encoded_audio: EncodedAudio,
+        text_embedding: torch.Tensor,
+        text_mask: torch.Tensor,
+        noise: Optional[torch.Tensor] = None,
+        ode_opt: Dict[str, Any] = DFLT_ODE_OPT,
+    ) -> torch.Tensor:
+        """
+        Differentiable separation using pre-encoded audio and a raw text embedding.
+
+        Unlike separate(), this method does NOT use @torch.inference_mode(),
+        allowing gradients to flow through:
+            text_embedding → memory_proj → DiT → ODE solver → DACVAE decoder → waveform
+
+        Args:
+            encoded_audio: Pre-encoded audio features from encode_audio().
+            text_embedding: Text embedding tensor [B, T_text, dim].
+                Pass a nn.Parameter here for gradient-based optimization.
+            text_mask: Text attention mask [B, T_text] from encode_text().
+            noise: Fixed noise tensor for determinism across optimization steps.
+                If None, random noise is generated (non-deterministic).
+            ode_opt: ODE solver options. Defaults to midpoint with step_size=2/32.
+
+        Returns:
+            Waveform tensor [B, 2, num_samples] where [:, 0, :] is target
+            and [:, 1, :] is residual. Full padded tensor (no trimming)
+            to preserve gradient flow.
+        """
+        audio_features = encoded_audio.audio_features
+        B, T, C = audio_features.shape
+        C = C // 2
+
+        if noise is None:
+            noise = torch.randn_like(audio_features)
+
+        forward_args = {
+            "audio_features": audio_features,
+            "text_features": text_embedding,
+            "text_mask": text_mask,
+            "masked_video_features": encoded_audio.masked_video_features,
+            "anchor_ids": encoded_audio.anchor_ids,
+            "anchor_alignment": encoded_audio.anchor_alignment,
+            "audio_pad_mask": encoded_audio.audio_pad_mask,
+        }
+
+        def vector_field(t, noisy_audio):
+            return self.forward(
+                noisy_audio=noisy_audio,
+                time=t.expand(noisy_audio.size(0)),
+                **forward_args,
+            )
+
+        states = odeint(
+            vector_field,
+            noise,
+            torch.tensor([0.0, 1.0], device=noise.device),
+            **ode_opt,
+        )
+        generated_features = states[-1].transpose(1, 2)
+        wavs = self.audio_codec.decode(
+            generated_features.reshape(2 * B, C, T)
+        ).view(B, 2, -1)
+
+        return wavs
+
     def unbatch(self, wavs: torch.Tensor, sizes: torch.Tensor, time_dim: int = -1):
         result = []
         for row, size in zip(wavs, sizes, strict=False):
@@ -359,4 +493,4 @@ class SAMAudio(BaseModel):
                 )
 
 
-__all__ = ["SAMAudio"]
+__all__ = ["SAMAudio", "EncodedAudio", "SeparationResult"]
