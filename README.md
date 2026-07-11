@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/sam-audio-kit)](https://pypi.org/project/sam-audio-kit/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: Mixed](https://img.shields.io/badge/License-Mixed%20(see%20LICENSING.md)-orange.svg)](LICENSING.md)
 
 **PyPI**: https://pypi.org/project/sam-audio-kit/
 
@@ -167,9 +167,38 @@ The **Lite Mode VRAM optimization technique** used in this package is inspired b
 
 ## License
 
-MIT License
+sam-audio-kit is **mixed-license**, not plain MIT:
 
-**Note**: The underlying SAM-Audio model has its own license terms. Please refer to the [official SAM-Audio repository](https://github.com/facebookresearch/sam-audio) for model usage terms.
+- `src/sam_audio_kit/sam_audio/**` (the SAM-Audio model itself) is under Meta's
+  custom **SAM License** -- source-available, but not OSI-approved, with its
+  own redistribution and use-restriction terms. See [`LICENSE.SAM-AUDIO`](LICENSE.SAM-AUDIO).
+- `src/sam_audio_kit/core/vision_encoder/**` and `core/audio_visual_encoder/**`
+  (Perception Encoders) are **Apache-2.0**. See [`LICENSE.PE`](LICENSE.PE).
+- The OpenMIRLab wrapper (inference orchestration, lite mode, chunking,
+  synthesis extras, CLI, etc.) is **MIT**. See [`LICENSE`](LICENSE).
+
+See [`LICENSING.md`](LICENSING.md) for the full component-by-component map.
+**Read `LICENSE.SAM-AUDIO` yourself before redistributing this package or any
+model output** -- it is more restrictive than MIT and this README does not
+summarize all of its terms.
+
+## Installing the audio codec (dacvae)
+
+The core SAM-Audio model uses Meta's [`dacvae`](https://github.com/facebookresearch/dacvae)
+neural audio codec (Apache-2.0) to encode/decode waveforms. It is **not** a
+declared dependency of this package -- `dacvae` has no PyPI release, and
+PyPI's upload validation rejects any package whose metadata contains a direct
+git/URL dependency (even under an optional extra), so declaring it here would
+make sam-audio-kit permanently unpublishable. Install it manually before
+using `SamAudio`:
+
+```bash
+pip install "dacvae @ git+https://github.com/facebookresearch/dacvae"
+```
+
+If it's missing, `sam_audio_kit.sam_audio.model.codec` raises a clear
+`ImportError` with this same instruction rather than failing with a bare
+"module not found".
 
 ## Citation
 

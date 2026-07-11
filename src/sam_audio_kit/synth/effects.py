@@ -6,6 +6,10 @@ Provides tools for manipulating audio in the latent space:
 - Texture transfer
 - Enhancement and transformation
 - Blending and mixing
+
+One of the largest modules in the tree. MIT-licensed OpenMIRLab code, built
+on top of SAM-Audio's DACVAE codec wrapper -- see LICENSING.md.
+Reads: codec.py (LatentRepresentation).
 """
 
 from dataclasses import dataclass

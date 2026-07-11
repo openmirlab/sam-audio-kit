@@ -5,6 +5,12 @@ Implements granular synthesis in the latent space, enabling:
 - Building grain databases from separated stems
 - Similarity-based grain replacement
 - Texture remixing and sound design
+
+One of the largest modules in the tree. MIT-licensed OpenMIRLab code; the
+neural/latent sampling approach is inspired by Naotokui's public
+latentgranular work (credited, not vendored) -- see /LICENSE and
+LICENSING.md. Built on top of SAM-Audio's DACVAE codec wrapper.
+Reads: codec.py (DACVAECodec, LatentRepresentation).
 """
 
 from dataclasses import dataclass, field

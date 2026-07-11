@@ -1,3 +1,13 @@
+"""Perception Encoders (PE) vision backbone -- vendored from Meta's Perception
+Encoders release under Apache-2.0 (see /LICENSE.PE at repo root; do not
+relicense or strip attribution). Implements the ViT-style vision transformer
+(rotary position embeddings, attention pooling, CLIP-style text/vision towers)
+that `sam_audio/model/vision_encoder.py` wraps for SAM-Audio's vision-guided
+separation. This is one of the largest modules in the tree; changes here
+ripple into every vision-conditioned separation path.
+Reads: config.py (PEConfig, checkpoint fetch), rope.py (Rope2D).
+"""
+
 import copy
 import math
 import random

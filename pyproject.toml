@@ -7,7 +7,18 @@ name = "sam-audio-kit"
 version = "0.1.0"
 description = "Creative audio toolkit for Meta's SAM-Audio model with synthesis, effects, and VRAM-efficient inference"
 readme = "README.md"
-license = "MIT AND Apache-2.0"  # MIT for wrapper, Apache-2.0/Meta SAM for extracted code
+# SPDX license expression (PEP 639). This is a truthful, mixed-license
+# expression, NOT a single OSI license:
+#   - LicenseRef-Meta-SAM-License: Meta's custom SAM License covers the
+#     vendored/derived SAM-Audio model code (src/sam_audio_kit/sam_audio/**).
+#     It is source-available but NOT OSI-approved and imposes redistribution
+#     and use-restriction terms of its own (see LICENSE.SAM-AUDIO).
+#   - Apache-2.0: covers the Perception Encoders component only (see LICENSE.PE).
+#   - MIT: covers the original OpenMIRLab wrapper code (see LICENSE).
+# See LICENSING.md for the full per-component mapping. Do not collapse this
+# back to a plain OSI identifier -- that would misrepresent the SAM terms.
+license = "LicenseRef-Meta-SAM-License AND MIT AND Apache-2.0"
+license-files = ["LICENSE", "LICENSE.SAM-AUDIO", "LICENSE.PE"]
 requires-python = ">=3.10"
 authors = [
     {name = "OpenMIRLab"}
@@ -26,7 +37,10 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
+    # Not "License :: OSI Approved :: MIT License": most of this package's
+    # functionality (the SAM-Audio model code) is under Meta's non-OSI SAM
+    # License, not MIT. Only the wrapper is MIT. See LICENSING.md.
+    "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -51,7 +65,13 @@ dependencies = [
 
     # Audio processing
     "torchcodec>=0.1.0",
-    "dacvae @ git+https://github.com/facebookresearch/dacvae",
+    # NOTE: dacvae (the neural audio codec used by the core SAM-Audio model,
+    # see src/sam_audio_kit/sam_audio/model/codec.py) is intentionally NOT
+    # listed here. It has no PyPI release, and PyPI's upload validation
+    # rejects any package whose metadata contains a direct URL/VCS dependency
+    # (git+https://...) -- even under an optional-dependencies extra. Declaring
+    # it here would make sam-audio-kit permanently unpublishable to PyPI.
+    # Install it manually -- see README.md "Installing the audio codec (dacvae)".
 
     # ODE solver for diffusion
     "torchdiffeq>=0.2.0",
@@ -85,9 +105,6 @@ Issues = "https://github.com/openmirlab/sam-audio-kit/issues"
 
 [project.scripts]
 sam-audio-kit = "sam_audio_kit.cli:main"
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sam_audio_kit"]
