@@ -2,6 +2,13 @@
 
 import pytest
 
+# sam_audio_kit/__init__.py unconditionally imports the SAM-Audio model
+# chain, which requires the `dacvae` codec (no PyPI release; not a declared
+# dependency -- see pyproject.toml and README.md "Installing the audio codec
+# (dacvae)"). Skip this module cleanly in environments without it (e.g. CI)
+# instead of hard-failing collection.
+pytest.importorskip("dacvae")
+
 from sam_audio_kit.memory import (
     GPUMemoryInfo,
     cleanup_gpu_memory,
