@@ -30,7 +30,7 @@ We express our gratitude to both teams for their contributions to
 open-source audio AI.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .model import SamAudio
 from .sam_audio.model import EncodedAudio

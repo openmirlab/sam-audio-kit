@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sam-audio-kit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Creative audio toolkit for Meta's SAM-Audio model with synthesis, effects, and VRAM-efficient inference"
 readme = "README.md"
 # SPDX license expression (PEP 639). This is a truthful, mixed-license

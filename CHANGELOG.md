@@ -3,12 +3,23 @@
 All notable changes to sam-audio-kit are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [0.2.0] - 2026-07-12
 
-**Release status: BLOCKED.** These changes prepare the safe, unambiguous
-subset of a licensing/dependency cleanup. They do NOT themselves clear the
-package for a PyPI release -- see `CLAUDE.md` ("Release status") for what
-still requires a human decision.
+**Release status: full GitHub release, PyPI held (conservative, by user
+decision).** The Meta SAM License question was reviewed: section 1.a of
+`LICENSE.SAM-AUDIO` explicitly grants the right to "use, reproduce,
+distribute, copy, create derivative works of, and make modifications" to
+the SAM Materials, subject to bundling the license text with any
+redistribution (already satisfied -- see `license-files` below) and the
+use restrictions in LICENSING.md (Trade Controls/ITAR, no
+military/weapons use). Redistribution is legally permitted; PyPI
+publication is deliberately deferred anyway as the more conservative
+choice (GitHub-only distribution requires a deliberate git clone/install
+step, so a user sees the README's licensing section before anything is
+running, versus `pip install`'s lower-friction, less-read path). See
+`CLAUDE.md`'s "Release status" section for the decision record. The
+uncommitted differentiable-API feature previously noted below has since
+landed (`feat/adopt-constitution`, merged).
 
 ### Fixed
 
@@ -87,9 +98,6 @@ still requires a human decision.
 
 ### Notes
 
-- The user has an **in-flight, uncommitted differentiable-API feature** on
-  `main` (`src/sam_audio_kit/{__init__,inference,model}.py` and
-  `src/sam_audio_kit/sam_audio/{__init__,model/__init__,model/base,model/model}.py`).
-  This branch (`feat/adopt-constitution`) was created from a clean worktree
-  and does not touch any of those files, specifically to avoid colliding
-  with that WIP. Expect a merge/rebase step when both land.
+- The differentiable-API feature noted as in-flight/uncommitted in earlier
+  drafts of this entry has since been committed and merged into `main`
+  ahead of this release.
