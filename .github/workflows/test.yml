@@ -65,7 +65,10 @@ jobs:
         # fails the job. See CHANGELOG.md for the follow-up (lazy import in
         # __init__.py) that would let non-dacvae tests run for real here.
         run: |
-          pytest tests/ --cov=sam_audio_kit; code=$?
+          set +e
+          pytest tests/ --cov=sam_audio_kit
+          code=$?
+          set -e
           if [ "$code" -ne 0 ] && [ "$code" -ne 5 ]; then exit "$code"; fi
 
   build:
