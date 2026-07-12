@@ -1,0 +1,116 @@
+# test.yml -- CI gate that runs on every push/PR, independent of releases.
+# Before this file, the only CI was publish.yml, which builds/tests on a
+# single pinned Python (3.11) and only at release time -- so a PR could land
+# on main with a broken install or a broken test on any other classified
+# Python version, and nobody would know until a release. This workflow closes
+# that gap: a Python matrix over everything pyproject.toml's classifiers claim
+# (3.10-3.12) plus 3.13 (verified passing locally, not yet advertised in
+# classifiers) so the claim and the tested reality stay in sync, and a
+# wheel-from-sdist build/install smoke test per the org's packaging article
+# (openmirlab-skills/plugins/openmirlab/CLAUDE.md, art. 7).
+#
+# KNOWN, INTENTIONAL GAP -- read before "fixing" a skip:
+# tests/test_chunking.py and tests/test_memory.py both import from
+# sam_audio_kit, whose top-level __init__.py unconditionally imports the
+# SAM-Audio model chain, which requires the `dacvae` neural audio codec
+# (src/sam_audio_kit/sam_audio/model/codec.py). dacvae has no PyPI release --
+# PyPI rejects git/URL dependencies in package metadata even under an extra --
+# so it is deliberately NOT installed here (see pyproject.toml and README.md
+# "Installing the audio codec (dacvae)"). Both test files start with
+# `pytest.importorskip("dacvae")` so this environment produces a clean SKIP
+# rather than a collection error; this is not a bug in this workflow. Anyone
+# wanting the real regression coverage runs `pytest` locally after
+# `pip install 'dacvae @ git+https://github.com/facebookresearch/dacvae'`.
+
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install package with dev extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest tests/ --cov=sam_audio_kit
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build wheel from sdist
+        run: python -m build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install wheel into a clean venv
+        run: |
+          python -m venv /tmp/wheel-check-venv
+          /tmp/wheel-check-venv/bin/pip install --upgrade pip
+          /tmp/wheel-check-venv/bin/pip install dist/*.whl
+
+      - name: Import smoke test (touch a public symbol)
+        run: |
+          /tmp/wheel-check-venv/bin/python - <<'PY'
+          import sys
+
+          # See the top-of-file note: importing sam_audio_kit unconditionally
+          # requires the un-publishable `dacvae` codec, which this workflow
+          # intentionally does not install. A wheel that installs but is
+          # empty/broken (the exact regression this smoke test exists to
+          # catch -- see org CLAUDE.md art. 7) fails differently: a bare
+          # ModuleNotFoundError for sam_audio_kit itself, or an AttributeError
+          # with no real traceback through the package's modules. So: accept
+          # either a real import (touch a public symbol) or the one specific,
+          # documented ImportError -- and fail on anything else.
+          try:
+              import sam_audio_kit
+          except ImportError as exc:
+              if "dacvae" not in str(exc):
+                  print(f"UNEXPECTED import failure (not the documented dacvae gap): {exc!r}", file=sys.stderr)
+                  raise
+              print("Wheel installs and executes real package code; hit the")
+              print("documented dacvae guard (expected in this dacvae-free CI):")
+              print(exc)
+          else:
+              assert hasattr(sam_audio_kit, "SamAudio"), "SamAudio symbol missing from a successful import"
+              print(f"OK: imported sam_audio_kit {sam_audio_kit.__version__}, touched SamAudio")
+          PY

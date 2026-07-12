@@ -38,6 +38,45 @@ still requires a human decision.
   of code the core model depends on, better done deliberately later than as
   part of this cleanup.
 
+### Added
+
+- **`.github/workflows/test.yml`**: a push/PR-triggered CI gate, closing the
+  gap where the only CI (`publish.yml`) built/tested a single pinned Python
+  (3.11) and only at release time. A `test` job matrixes over every Python
+  version `pyproject.toml`'s classifiers claim (3.10, 3.11, 3.12) plus 3.13
+  (verified passing locally; not yet in the classifiers). A `build` job adds
+  the wheel-from-sdist install smoke test required by org art.7
+  (`python -m build`, install the wheel into a clean venv, import the
+  package and touch a public symbol) -- adapted for this repo's one real
+  constraint: `sam_audio_kit/__init__.py` unconditionally imports the
+  SAM-Audio chain, which needs the un-publishable `dacvae` codec (not
+  installed in CI), so the smoke test accepts either a real import (touching
+  `SamAudio`) or the one specific, documented `ImportError` -- and fails on
+  anything else (e.g. the bare `ModuleNotFoundError` an empty/broken wheel
+  would produce instead).
+
+### Fixed
+
+- **`tests/test_chunking.py` and `tests/test_memory.py` no longer hard-fail
+  collection without `dacvae`.** Both import from `sam_audio_kit`, whose
+  `__init__.py` unconditionally pulls in the SAM-Audio chain requiring
+  `dacvae` -- intentionally not installed in CI (no PyPI release; see
+  "Fixed" above from the previous entry). Each file now starts with
+  `pytest.importorskip("dacvae")`, so an environment without it gets a clean
+  `SKIP` instead of a collection `ERROR`. Verified both ways: skips cleanly
+  with `dacvae` absent, and all 15 tests still pass with it present.
+- **Transitive dependency floors for `librosa`/`numba`/`llvmlite`.** With
+  only `laion-clap>=1.1.0` declared, `pip`/`uv` could resolve to an ancient
+  `librosa`/`numba`/`llvmlite` chain that builds from source and fails on
+  Python 3.12+ (`numba`'s `setup.py` imports the removed
+  `numpy.distutils`; old `llvmlite` hard-refuses Python>=3.10) -- meaning the
+  classifiers' claimed 3.12 support did not actually install cleanly.  Added
+  explicit floors (`librosa>=0.10.0`, `numba>=0.61.0`, `llvmlite>=0.44.0`)
+  that steer the resolver to versions with prebuilt wheels for 3.10-3.13.
+  sam-audio-kit doesn't call these packages directly; the floors exist only
+  to fix installability. Verified with a clean-venv install (both `uv pip`
+  and plain `pip`) on 3.10, 3.11, 3.12, and 3.13.
+
 ### Changed
 
 - `.github/workflows/publish.yml`: added a `test` job that `build` now
