@@ -1,10 +1,11 @@
 # sam-audio-kit
 
-[![PyPI](https://img.shields.io/pypi/v/sam-audio-kit)](https://pypi.org/project/sam-audio-kit/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: Mixed](https://img.shields.io/badge/License-Mixed%20(see%20LICENSING.md)-orange.svg)](LICENSING.md)
 
-**PyPI**: https://pypi.org/project/sam-audio-kit/
+**Not yet published to PyPI** — release is gated on a pending decision about
+redistributing code under Meta's SAM License (see [LICENSING.md](LICENSING.md)
+and `CHANGELOG.md`). Install from a local clone in the meantime.
 
 Inference-only package for [SAM-Audio](https://github.com/facebookresearch/sam-audio) (Segment Anything for Audio) by Meta AI.
 
@@ -26,19 +27,18 @@ This is a lightweight, dependency-minimal repackaging focused solely on inferenc
 
 ## Installation
 
-```bash
-# Using uv (recommended)
-uv add sam-audio-kit
+This package is **not published to PyPI** (see the note above). Install it
+locally from a clone of this repo.
 
-# Or using pip
-pip install sam-audio-kit
-```
-
-For development:
 ```bash
 git clone https://github.com/openmirlab/sam-audio-kit.git
 cd sam-audio-kit
+
+# Using uv (recommended)
 uv sync
+
+# Or using pip
+pip install -e .
 
 # Optional: Initialize Claude Code for AI-assisted development
 claude init
