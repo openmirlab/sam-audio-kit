@@ -26,6 +26,26 @@ actual "Publish to PyPI" step stays commented out until a future decision
 to lift that hold -- re-enabling it does not require a further license
 review, only a fresh decision on distribution channel.
 
+## Documentation conformance
+
+README reviewed 2026-07-12 against the org's documentation-conformance shape
+(Why-this-exists -> Acknowledgments -> Citation -> Features -> Scope ->
+Install -> Quick Start -> ... -> "will NEVER bundle" -> Development ->
+License -> Support). Two attribution/citation items were specifically
+verified against primary sources rather than trusted as-is:
+
+- **Citation** (`arXiv:2512.18099`, "SAM Audio: Segment Anything in Audio",
+  14 authors): fetched the arXiv abstract page directly -- title and full
+  author list match what's printed in the README. No changes needed.
+- **AudioGhost AI attribution** (Lite Mode credited to
+  `github.com/0x0funky/audioghost-ai`): checked via `gh api
+  repos/0x0funky/audioghost-ai` and `gh api users/0x0funky` -- both the repo
+  (401 stars, created 2025-12-22) and the account are real, and the repo's
+  own README independently documents the same "remove unused SAM-Audio
+  components for VRAM savings" technique. This is *not* a fabricated
+  attribution (unlike a superficially similar case previously found and
+  removed in `larsnet-infer`) -- kept as-is.
+
 - PyTorch 2.0+ with torchaudio
 - Transformers (HuggingFace)
 - DACVAE audio codec
@@ -67,16 +87,16 @@ export HF_TOKEN="your_token"
 
 ```bash
 # Run tests
-pytest tests/
+uv run pytest tests/
 
 # Format code
-black src/ tests/ examples/
+uv run black src/ tests/ examples/
 
 # Lint
-ruff check src/ tests/
+uv run ruff check src/ tests/
 
 # Type check
-mypy src/
+uv run mypy src/
 
 # CLI usage
 sam-audio-kit separate audio.wav -d "vocals" -o output.wav
@@ -109,10 +129,10 @@ sam-audio-kit download --model base --warmup
 
 ```bash
 # Run all tests
-pytest tests/ -v
+uv run pytest tests/ -v
 
 # Run with coverage
-pytest tests/ --cov=sam_audio_kit
+uv run pytest tests/ --cov=sam_audio_kit
 ```
 
 ## Environment Variables

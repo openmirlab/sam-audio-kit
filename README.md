@@ -9,7 +9,79 @@ and `CHANGELOG.md`). Install from a local clone in the meantime.
 
 Inference-only package for [SAM-Audio](https://github.com/facebookresearch/sam-audio) (Segment Anything for Audio) by Meta AI.
 
-This is a lightweight, dependency-minimal repackaging focused solely on inference with VRAM-efficient lite mode. For training and the full research codebase, please visit the [original SAM-Audio repository](https://github.com/facebookresearch/sam-audio).
+---
+
+## Why this exists
+
+[SAM-Audio](https://github.com/facebookresearch/sam-audio) ("Segment Anything for
+Audio") is Meta AI's foundation model for language/visual/temporal-prompted audio
+source separation, introduced in *SAM Audio: Segment Anything in Audio*
+(Shi et al., 2025 — see Citation below). The
+[original repository](https://github.com/facebookresearch/sam-audio) is a full
+research codebase: training, evaluation, and inference code bundled together,
+with a heavier dependency footprint and no VRAM-conscious inference path. That
+makes it awkward to drop into a lightweight production or creative-tooling
+pipeline where you only ever want to *run* the model.
+
+**sam-audio-kit** is a from-scratch, inference-only repackaging. It loads the
+same upstream model weights (downloaded from Meta's gated HuggingFace
+checkpoints — see [Prerequisites](#prerequisites) and
+["What this project will NEVER bundle"](#what-this-project-will-never-bundle)
+below) and runs the same architecture, but strips training code and adds a
+VRAM-efficient "Lite Mode" (62–78% VRAM reduction), auto-chunking for long
+audio, mixed-precision inference, model caching, and a small Python API + CLI.
+For training or the full research codebase, use the
+[original SAM-Audio repository](https://github.com/facebookresearch/sam-audio).
+
+## Acknowledgments
+
+sam-audio-kit is an independent, unofficial repackaging built on top of other
+people's research and tooling. None of the following are affiliated with or
+endorse this repackaging.
+
+- **Upstream model & research**: [SAM-Audio](https://github.com/facebookresearch/sam-audio)
+  ("Segment Anything for Audio") was developed by **Meta AI (FAIR)**. The
+  paper's authors are Bowen Shi, Andros Tjandra, John Hoffman, Helin Wang,
+  Yi-Chiao Wu, Luya Gao, Julius Richter, Matt Le, Apoorv Vyas, Sanyuan Chen,
+  Christoph Feichtenhofer, Piotr Dollár, Wei-Ning Hsu, and Ann Lee — verified
+  against the paper's own page at
+  [arXiv:2512.18099](https://arxiv.org/abs/2512.18099) (title and full author
+  list match; checked 2026-07-12). See [Citation](#citation) below.
+- **Source repository**: [github.com/facebookresearch/sam-audio](https://github.com/facebookresearch/sam-audio)
+- **Model weights host**: Hugging Face, gated under Meta's SAM License —
+  [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base),
+  [facebook/sam-audio-large](https://huggingface.co/facebook/sam-audio-large)
+- **Perception Encoders** (vendored vision/audio-visual encoder components,
+  Apache-2.0): also Meta AI Research — see [`LICENSE.PE`](LICENSE.PE)
+- **`dacvae` neural audio codec** (Apache-2.0, not vendored, installed
+  separately): [github.com/facebookresearch/dacvae](https://github.com/facebookresearch/dacvae),
+  Meta AI Research
+- **Lite Mode VRAM optimization technique**: inspired by the memory-reduction
+  approach used in [AudioGhost AI](https://github.com/0x0funky/audioghost-ai)
+  by [0x0funky](https://github.com/0x0funky) — a "memory-optimized SAM-Audio
+  with modern UI" project whose README documents removing the same unused
+  components (vision encoder, visual/text rankers) for VRAM savings. No code
+  was copied, approach only. (Verified via the GitHub API that both the repo
+  and the account exist, and independently confirmed the README's described
+  technique, on 2026-07-12.)
+- **Latent granular synthesis technique** (inspiration only, no vendored
+  code): credited to Naotokui's public work — see [`LICENSING.md`](LICENSING.md)
+
+## Citation
+
+If you use SAM Audio in your research, please cite the original paper:
+
+```bibtex
+@article{shi2025samaudio,
+    title={SAM Audio: Segment Anything in Audio},
+    author={Bowen Shi and Andros Tjandra and John Hoffman and Helin Wang and Yi-Chiao Wu and Luya Gao and Julius Richter and Matt Le and Apoorv Vyas and Sanyuan Chen and Christoph Feichtenhofer and Piotr Doll{\'a}r and Wei-Ning Hsu and Ann Lee},
+    year={2025},
+    url={https://arxiv.org/abs/2512.18099}
+}
+```
+
+*(Verified against [arXiv:2512.18099](https://arxiv.org/abs/2512.18099) on
+2026-07-12: title and full author list match what is printed above.)*
 
 ---
 
@@ -24,6 +96,25 @@ This is a lightweight, dependency-minimal repackaging focused solely on inferenc
 - **Warmup Support**: Pre-compile CUDA kernels for faster first inference
 - **Simple API**: Easy-to-use Python API and CLI
 - **Creative Synthesis**: Iterative subtractive synthesis using semantic filtering
+
+## Scope
+
+**In scope:**
+- Inference-only SAM-Audio: load a pretrained checkpoint, run separation/synthesis
+- VRAM-efficient "Lite Mode", mixed precision, auto-chunking for long audio
+- Python API + CLI for separation and iterative subtractive synthesis
+- Model download/caching helpers for the gated HuggingFace checkpoints
+
+**Out of scope, forever:**
+- Training or fine-tuning SAM-Audio — use the
+  [original repository](https://github.com/facebookresearch/sam-audio) for that
+- Redistributing SAM-Audio model weights — they remain gated on HuggingFace
+  under Meta's SAM License; this package only automates *your own*
+  authenticated download, and never bundles or mirrors the weights itself
+  (see ["What this project will NEVER bundle"](#what-this-project-will-never-bundle))
+- Reimplementing or modifying the SAM-Audio model architecture itself —
+  `src/sam_audio_kit/sam_audio/**` is a thin extraction of the upstream model,
+  not a redesign
 
 ## Installation
 
@@ -58,6 +149,24 @@ claude init
    # Or set environment variable
    export HF_TOKEN=hf_your_token_here
    ```
+
+### Installing the audio codec (dacvae)
+
+The core SAM-Audio model uses Meta's [`dacvae`](https://github.com/facebookresearch/dacvae)
+neural audio codec (Apache-2.0) to encode/decode waveforms. It is **not** a
+declared dependency of this package -- `dacvae` has no PyPI release, and
+PyPI's upload validation rejects any package whose metadata contains a direct
+git/URL dependency (even under an optional extra), so declaring it here would
+make sam-audio-kit permanently unpublishable. Install it manually before
+using `SamAudio`:
+
+```bash
+pip install "dacvae @ git+https://github.com/facebookresearch/dacvae"
+```
+
+If it's missing, `sam_audio_kit.sam_audio.model.codec` raises a clear
+`ImportError` with this same instruction rather than failing with a bare
+"module not found".
 
 ## Quick Start
 
@@ -149,21 +258,69 @@ sam-audio-kit download --model base --warmup
 - torchaudio >= 2.0.0
 - CUDA-capable GPU with at least 4GB VRAM (lite + bfloat16)
 
-## Acknowledgments
+## What this project will NEVER bundle
 
-This package stands on the shoulders of two important projects.
+sam-audio-kit downloads SAM-Audio's pretrained checkpoints
+(`facebook/sam-audio-base`, `facebook/sam-audio-large`, and optionally
+`facebook/sam-audio-judge`) at runtime via `huggingface_hub.snapshot_download`
+(see `src/sam_audio_kit/download.py`). This is the highest license-sensitivity
+part of this repo, so read this section fully before you rely on it in a
+product:
 
-### Original Research by Meta AI / Facebook Research
+- **Gated on HuggingFace.** You must personally request and be granted access
+  to each model page before `download_model()` / `sam-audio-kit download`
+  will succeed. An unauthenticated or not-yet-approved request fails with a
+  HuggingFace access-denied error — there is no silent fallback and no bundled
+  copy to fall back to.
+- **Licensed under Meta's SAM License** (`LICENSE.SAM-AUDIO`), a custom,
+  source-available, **non-OSI** license with its own redistribution and
+  use-restriction terms (Trade Controls/ITAR compliance, no
+  military/weapons use, no reverse-engineering the model internals — see
+  [`LICENSING.md`](LICENSING.md) for the full map). This is materially more
+  restrictive than the MIT license covering sam-audio-kit's own wrapper code,
+  and the two must not be conflated.
+- **Never committed to this git repository, never included in the PyPI or
+  GitHub release artifact (sdist/wheel), and never mirrored to any host this
+  project controls.** Every checkpoint is fetched directly from Meta's own
+  HuggingFace org into *your own* cache directory (`SAM_AUDIO_CACHE_DIR`,
+  default `~/.cache/sam-audio-kit`), authenticated with *your own*
+  HuggingFace token (`HF_TOKEN` / `HUGGINGFACE_TOKEN`) that must already have
+  gated access approved by Meta.
+- **This project has no mechanism to grant, bypass, or share gated access.**
+  If your HuggingFace account doesn't have approved access to
+  `facebook/sam-audio-base` / `-large` / `-judge`, no flag or environment
+  variable in this package will get you the weights — access must come from
+  Meta.
+- **The same applies to `dacvae`** (see
+  ["Installing the audio codec"](#installing-the-audio-codec-dacvae) above):
+  it is never vendored or bundled, precisely so this package's own
+  distribution never becomes a redistribution vector for someone else's
+  license terms.
 
-**SAM-Audio** (Segment Anything for Audio) is developed by Meta AI Research.
+If you redistribute anything built with this package — fine-tuned weights, a
+derivative checkpoint, model outputs bundled into another product, etc. —
+**read `LICENSE.SAM-AUDIO` yourself first**. Its terms travel with the
+weights and any derivative of them, independent of sam-audio-kit's own MIT
+license, and this README does not summarize all of its terms.
 
-- **Repository**: [github.com/facebookresearch/sam-audio](https://github.com/facebookresearch/sam-audio)
-- **Paper**: *Segment Anything for Audio*
-- **HuggingFace**: [facebook/sam-audio-base](https://huggingface.co/facebook/sam-audio-base)
+## Development
 
-### Lite Mode Optimization
+```bash
+git clone https://github.com/openmirlab/sam-audio-kit.git
+cd sam-audio-kit
+uv sync --extra dev
 
-The **Lite Mode VRAM optimization technique** used in this package is inspired by [AudioGhost AI](https://github.com/0x0funky/audioghost-ai).
+# Run tests
+uv run pytest tests/ -v
+
+# Lint / format / type-check
+uv run ruff check src/ tests/
+uv run black src/ tests/ examples/
+uv run mypy src/
+```
+
+See [`CLAUDE.md`](CLAUDE.md) for architecture notes, current release status,
+and orientation for AI coding agents working in this repo.
 
 ## License
 
@@ -182,33 +339,11 @@ See [`LICENSING.md`](LICENSING.md) for the full component-by-component map.
 model output** -- it is more restrictive than MIT and this README does not
 summarize all of its terms.
 
-## Installing the audio codec (dacvae)
+## Support
 
-The core SAM-Audio model uses Meta's [`dacvae`](https://github.com/facebookresearch/dacvae)
-neural audio codec (Apache-2.0) to encode/decode waveforms. It is **not** a
-declared dependency of this package -- `dacvae` has no PyPI release, and
-PyPI's upload validation rejects any package whose metadata contains a direct
-git/URL dependency (even under an optional extra), so declaring it here would
-make sam-audio-kit permanently unpublishable. Install it manually before
-using `SamAudio`:
-
-```bash
-pip install "dacvae @ git+https://github.com/facebookresearch/dacvae"
-```
-
-If it's missing, `sam_audio_kit.sam_audio.model.codec` raises a clear
-`ImportError` with this same instruction rather than failing with a bare
-"module not found".
-
-## Citation
-
-If you use SAM Audio in your research, please cite the original paper:
-
-```bibtex
-@article{shi2025samaudio,
-    title={SAM Audio: Segment Anything in Audio},
-    author={Bowen Shi and Andros Tjandra and John Hoffman and Helin Wang and Yi-Chiao Wu and Luya Gao and Julius Richter and Matt Le and Apoorv Vyas and Sanyuan Chen and Christoph Feichtenhofer and Piotr Doll{\'a}r and Wei-Ning Hsu and Ann Lee},
-    year={2025},
-    url={https://arxiv.org/abs/2512.18099}
-}
-```
+- **Issues**: [github.com/openmirlab/sam-audio-kit/issues](https://github.com/openmirlab/sam-audio-kit/issues)
+- **Documentation**: see the [Documentation](#documentation) section above
+  (CLI, Python API, configuration, architecture, benchmarks, troubleshooting)
+- **Licensing questions**: [`LICENSING.md`](LICENSING.md) maps every
+  component to its governing license; read `LICENSE.SAM-AUDIO` yourself
+  before any redistribution decision
