@@ -3,6 +3,18 @@
 All notable changes to sam-audio-kit are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Changed
+
+- Clarified that public GitHub source/releases and GitHub installation are
+  allowed under the mixed-license terms, while PyPI remains held as a
+  separate distribution-channel decision.
+- Removed an unused debug probe hook and evaluation-dataset resource metadata
+  from the shipped inference surface. Existing tests remain green; the
+  optional external CLAP preprocessing import is documented as a future
+  adapter candidate.
+
 ## [0.2.0] - 2026-07-12
 
 **Release status: full GitHub release, PyPI held (conservative, by user

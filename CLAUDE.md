@@ -18,13 +18,25 @@ text with any distribution (satisfied via `license-files` in
 (Trade Controls/ITAR, no military/weapons use, no reverse-engineering the
 model internals). Redistribution is not legally blocked.
 
-Decision: publish full GitHub releases; **hold PyPI** as the more
+Decision: publish public GitHub source/releases and support GitHub installation;
+**hold PyPI** as the more
 conservative distribution channel for now (a `pip install` is lower-friction
 and less likely to be read before running than a deliberate git-clone
 install, given the license's non-OSI use restrictions). `.github/workflows/publish.yml`'s
 actual "Publish to PyPI" step stays commented out until a future decision
 to lift that hold -- re-enabling it does not require a further license
-review, only a fresh decision on distribution channel.
+review, only a fresh decision on distribution channel. GitHub distribution
+must retain `LICENSE`, `LICENSE.SAM-AUDIO`, and `LICENSE.PE`; gated checkpoints
+remain user-authenticated and are never bundled or mirrored. This is policy
+documentation, not legal advice.
+
+## Inference-only boundary evidence
+
+The shipped package contains model, preprocessing/postprocessing, download,
+cache, and inference runtime only. Training, evaluation, dataset, experiment,
+and debug residue is excluded from runtime imports and package metadata. The
+2026-07-15 cleanup removed the unused debug probe hook and evaluation-dataset
+resource map; see `docs/NAV_AUDIT.md` for the scan and audit evidence.
 
 ## Documentation conformance
 

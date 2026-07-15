@@ -12,7 +12,6 @@ from torch.nn.attention.flex_attention import (BlockMask, _mask_mod_signature,
                                                flex_attention)
 from xformers.ops import AttentionBias, fmha
 
-from . import probe
 
 
 class InitStdFactor(Enum):
@@ -326,7 +325,6 @@ class RMSNorm(nn.Module):
         return x * torch.rsqrt((x * x).mean(-1, keepdim=True) + self.eps)
 
     def forward(self, x: torch.Tensor):
-        x = probe.log_stats(x, "resid")
         output = self._norm(x.float())
         return (output * self.weight.float()).type_as(x)
 
