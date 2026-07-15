@@ -43,11 +43,6 @@ HUGGINGFACE_RESOURCES = {
     "judge": {
         "facebook/sam-audio-judge": "Quality assessment (recall, precision, faithfulness)",
     },
-    # Evaluation datasets (not used for inference)
-    "datasets": {
-        "facebook/sam-audio-bench": "Evaluation benchmark (SFX, speech, music, etc.)",
-        "facebook/sam-audio-musdb18hq-test": "Music separation evaluation (MUSDB18HQ)",
-    },
 }
 
 # Default configurations

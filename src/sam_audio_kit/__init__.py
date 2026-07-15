@@ -42,6 +42,8 @@ from .lite import (
     get_config_description,
 )
 from .inference import SeparationResult, separate_audio
+from .session import SamAudioSession
+from .checkpoints import checkpoint_info, load_checkpoint_config
 from .chunking import AudioChunker, ChunkingConfig
 from .memory import (
     cleanup_gpu_memory,
@@ -84,6 +86,9 @@ __all__ = [
     # Inference
     "SeparationResult",
     "separate_audio",
+    "SamAudioSession",
+    "checkpoint_info",
+    "load_checkpoint_config",
     # Chunking
     "AudioChunker",
     "ChunkingConfig",

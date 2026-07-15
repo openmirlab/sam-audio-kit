@@ -3,9 +3,10 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: Mixed](https://img.shields.io/badge/License-Mixed%20(see%20LICENSING.md)-orange.svg)](LICENSING.md)
 
-**Not yet published to PyPI** — release is gated on a pending decision about
-redistributing code under Meta's SAM License (see [LICENSING.md](LICENSING.md)
-and `CHANGELOG.md`). Install from a local clone in the meantime.
+**GitHub source/release only (PyPI held).** Public GitHub releases and GitHub
+installation are allowed under the mixed-license terms documented in
+[LICENSING.md](LICENSING.md). PyPI publication remains on hold as a separate
+distribution-channel decision; this is policy guidance, not legal advice.
 
 Inference-only package for [SAM-Audio](https://github.com/facebookresearch/sam-audio) (Segment Anything for Audio) by Meta AI.
 
@@ -118,17 +119,22 @@ If you use SAM Audio in your research, please cite the original paper:
 
 ## Installation
 
-This package is **not published to PyPI** (see the note above). Install it
-locally from a clone of this repo.
+This package is intentionally **not published to PyPI**. Install the public
+source directly from GitHub (or clone it first); this keeps the distribution
+channel explicit while the PyPI decision remains open.
 
 ```bash
+# Direct GitHub install
+pip install "sam-audio-kit @ git+https://github.com/openmirlab/sam-audio-kit.git"
+
+# Or clone for development
 git clone https://github.com/openmirlab/sam-audio-kit.git
 cd sam-audio-kit
 
 # Using uv (recommended)
 uv sync
 
-# Or using pip
+# Or using pip from the clone
 pip install -e .
 
 # Optional: Initialize Claude Code for AI-assisted development
@@ -136,6 +142,13 @@ claude init
 ```
 
 ### Prerequisites
+
+This repository combines OpenMIRLab MIT wrapper code, Apache-2.0 Perception
+Encoders, and Meta's non-OSI SAM License for the SAM-Audio model code. Keep
+all three license files when redistributing source or GitHub-built artifacts;
+the Meta terms include trade-control/ITAR, military/weapons, and
+reverse-engineering restrictions. Review [LICENSING.md](LICENSING.md) before
+use; this documentation is not legal advice.
 
 **HuggingFace Access Required**: SAM-Audio models are gated.
 
@@ -169,6 +182,26 @@ If it's missing, `sam_audio_kit.sam_audio.model.codec` raises a clear
 "module not found".
 
 ## Quick Start
+
+### Managed lifecycle (recommended for services)
+
+`SamAudioSession` owns one live model while the package-owned checkpoint
+registry (`src/sam_audio_kit/config/checkpoints.toml`) records official model
+URLs and provenance. The registry contains no weights and accepts explicit
+metadata overrides for mirrors or deployment manifests.
+
+```python
+from sam_audio_kit import SamAudioSession
+
+with SamAudioSession(model="base", device="cuda") as session:
+    result = session.infer("song.wav", "vocals")
+    result.save("vocals.wav")
+```
+
+`load()` is explicit, `infer()` is ready-only, `release()` drops live model
+memory while retaining the disk cache, and `close()` permanently ends the
+session. The legacy `SamAudio.from_pretrained(...).separate(...)` API remains
+available for compatibility.
 
 ### Python API
 
@@ -296,6 +329,9 @@ product:
   it is never vendored or bundled, precisely so this package's own
   distribution never becomes a redistribution vector for someone else's
   license terms.
+- **Training, fine-tuning, evaluation, dataset, and experiment tooling are
+  never shipped.** This repository is an inference-only runtime; use the
+  upstream research repository for those workflows.
 
 If you redistribute anything built with this package — fine-tuned weights, a
 derivative checkpoint, model outputs bundled into another product, etc. —
