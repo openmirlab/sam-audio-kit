@@ -5,6 +5,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Added `SamAudioSession`, an independent load/infer/release/close lifecycle
+  facade with status, cache inspection, and context-manager support.
+- Added package-owned `config/checkpoints.toml` metadata for gated official
+  model repositories and generic caller overrides; no weights are bundled or
+  mirrored.
+
 ### Changed
 
 - Clarified that public GitHub source/releases and GitHub installation are

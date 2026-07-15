@@ -81,7 +81,13 @@ None found for the approved GitHub-only/inference-only cleanup phase.
 
 ## Phase decision
 
-The inference-only and release-policy gates are passed for this branch. The
-repository is ready for a separate phase-2 clean API, package-owned checkpoint
-configuration, and lifecycle-session adoption, after a deterministic baseline
-fixture is recorded. Those API changes are intentionally not included here.
+The inference-only and release-policy gates remain passed. Phase 2 now adds a
+narrow `SamAudioSession` facade and package-owned checkpoint metadata without
+changing model math or bundling gated weights. The legacy `SamAudio` facade is
+retained for compatibility. Runtime loading still requires the user's gated
+Hugging Face credentials and the separately installed `dacvae` codec.
+
+Phase-2 evidence: `.venv/bin/python -m pytest -q` → 15 passed; compileall,
+TOML parsing, lifecycle state/error smoke tests, and `git diff --check` pass.
+Wheel build could not run because this environment does not have the `build`
+module installed; no wheel claim is made here.

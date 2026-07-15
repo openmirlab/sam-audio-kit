@@ -38,6 +38,15 @@ and debug residue is excluded from runtime imports and package metadata. The
 2026-07-15 cleanup removed the unused debug probe hook and evaluation-dataset
 resource map; see `docs/NAV_AUDIT.md` for the scan and audit evidence.
 
+## Public inference contract
+
+`SamAudioSession` is the independent lifecycle facade: call `load()` before
+ready-only `infer()`, then `release()` or `close()`; `status`, `cache_info()`,
+and context-manager use are supported. `config/checkpoints.toml` is the
+package-owned source for official gated model URLs and provenance. It never
+bundles or mirrors weights, and callers may provide explicit metadata
+overrides. Keep the legacy `SamAudio` one-shot API lazy and compatible.
+
 ## Documentation conformance
 
 README reviewed 2026-07-12 against the org's documentation-conformance shape

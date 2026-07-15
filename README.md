@@ -183,6 +183,26 @@ If it's missing, `sam_audio_kit.sam_audio.model.codec` raises a clear
 
 ## Quick Start
 
+### Managed lifecycle (recommended for services)
+
+`SamAudioSession` owns one live model while the package-owned checkpoint
+registry (`src/sam_audio_kit/config/checkpoints.toml`) records official model
+URLs and provenance. The registry contains no weights and accepts explicit
+metadata overrides for mirrors or deployment manifests.
+
+```python
+from sam_audio_kit import SamAudioSession
+
+with SamAudioSession(model="base", device="cuda") as session:
+    result = session.infer("song.wav", "vocals")
+    result.save("vocals.wav")
+```
+
+`load()` is explicit, `infer()` is ready-only, `release()` drops live model
+memory while retaining the disk cache, and `close()` permanently ends the
+session. The legacy `SamAudio.from_pretrained(...).separate(...)` API remains
+available for compatibility.
+
 ### Python API
 
 ```python
