@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 # Device types
-DeviceType = Literal["cuda", "cpu", "mps"]
+DeviceType = Literal["cuda", "cpu", "mps", "auto"]
 
 # Data types for model precision
 DType = Literal["float32", "float16", "bfloat16"]
@@ -71,6 +71,17 @@ VRAM_ESTIMATES: dict[str, dict[str, float]] = {
         "lite_bfloat16": 7.0,
     },
 }
+
+
+def resolve_device(device: DeviceType) -> DeviceType:
+    """Turn the "auto" sentinel into a concrete device; pass everything else through unchanged."""
+    if device != "auto":
+        return device
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
 
 
 def get_torch_dtype(dtype: DType) -> torch.dtype:

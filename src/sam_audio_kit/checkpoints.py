@@ -30,7 +30,7 @@ def checkpoint_info(model: str, *, overrides: Mapping[str, Any] | None = None,
         # Full Hugging Face IDs and local paths are valid explicit models even
         # when they are not part of the package's small/base/large registry.
         info = {"model_id": model, "url": model if model.startswith("https://") else "",
-                "sha256": "", "license": "user-supplied", "provenance": "user-supplied"}
+                "license": "user-supplied", "provenance": "user-supplied"}
     if overrides:
         info.update(dict(overrides))
     return info

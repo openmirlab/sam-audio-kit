@@ -4,7 +4,6 @@
 [models.small]
 model_id = "facebook/sam-audio-small"
 url = "https://huggingface.co/facebook/sam-audio-small"
-sha256 = ""
 size = "gated"
 license = "Meta SAM License"
 provenance = "https://github.com/facebookresearch/sam-audio"
@@ -14,7 +13,6 @@ updated_at = "2026-07-15"
 [models.base]
 model_id = "facebook/sam-audio-base"
 url = "https://huggingface.co/facebook/sam-audio-base"
-sha256 = ""
 size = "gated"
 license = "Meta SAM License"
 provenance = "https://github.com/facebookresearch/sam-audio"
@@ -24,7 +22,6 @@ updated_at = "2026-07-15"
 [models.large]
 model_id = "facebook/sam-audio-large"
 url = "https://huggingface.co/facebook/sam-audio-large"
-sha256 = ""
 size = "gated"
 license = "Meta SAM License"
 provenance = "https://github.com/facebookresearch/sam-audio"

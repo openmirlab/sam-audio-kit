@@ -30,6 +30,7 @@ from .types import (
     get_model_size,
     get_torch_dtype,
     estimate_vram,
+    resolve_device,
     MODEL_NAME_MAP,
 )
 
@@ -80,6 +81,8 @@ class SamAudio:
             dtype: Data type for inference
             chunk_duration: Default chunk duration for long audio
         """
+        device = resolve_device(device)
+
         self._model = model
         self._processor = processor
         self._device = device
@@ -175,6 +178,10 @@ class SamAudio:
             # Full model name or path
             model_name = model_name_or_path
             model_size = get_model_size(model_name_or_path)
+
+        # Resolve "auto" to a concrete device before the VRAM/MemoryTracker
+        # checks below, so they see the same device that __init__ will use.
+        device = resolve_device(device)
 
         # Estimate VRAM (always lite mode)
         estimated_vram = estimate_vram(model_size, True, dtype)
