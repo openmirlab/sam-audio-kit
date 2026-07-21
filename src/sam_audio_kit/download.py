@@ -54,6 +54,16 @@ def get_cache_dir() -> Path:
     return DEFAULT_CACHE_DIR
 
 
+def resolve_model_cache_path(
+    model_size: Union[str, ModelSize] = "base",
+    cache_dir: Optional[Union[str, Path]] = None,
+) -> Path:
+    """Return Hugging Face's local repository path without creating it."""
+    root = Path(cache_dir) if cache_dir is not None else get_cache_dir()
+    model_name = get_model_name(model_size)
+    return root / f"models--{model_name.replace('/', '--')}"
+
+
 def get_hf_token() -> Optional[str]:
     """
     Get HuggingFace token from environment.

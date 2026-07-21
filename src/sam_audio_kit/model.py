@@ -423,6 +423,7 @@ class SamAudio:
         Returns:
             Self for chaining
         """
+        device = resolve_device(device)
         torch_dtype = get_torch_dtype(self._dtype)
         self._model = self._model.to(device, torch_dtype)
         self._device = device

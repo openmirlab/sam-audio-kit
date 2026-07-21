@@ -38,10 +38,29 @@ class TestResolveDevice:
         else:
             assert resolved == "cpu"
 
-    def test_explicit_devices_pass_through_unchanged(self):
+    def test_none_preserves_automatic_cpu_fallback(self, monkeypatch):
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+        monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
+        assert resolve_device(None) == "cpu"
+
+    def test_explicit_cpu_passes_through_unchanged(self):
         assert resolve_device("cpu") == "cpu"
+
+    def test_explicit_cuda_index_is_preserved(self, monkeypatch):
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
         assert resolve_device("cuda") == "cuda"
-        assert resolve_device("mps") == "mps"
+        assert resolve_device("cuda:1") == "cuda:1"
+
+    def test_unavailable_or_invalid_explicit_accelerator_raises(self, monkeypatch):
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+        monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
+        with pytest.raises(RuntimeError, match="CUDA"):
+            resolve_device("cuda")
+        with pytest.raises(RuntimeError, match="MPS"):
+            resolve_device("mps")
+        with pytest.raises(ValueError):
+            resolve_device("metal")
 
 
 class TestSamAudioInitResolvesAutoDevice:

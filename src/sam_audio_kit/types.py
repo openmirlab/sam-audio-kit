@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 # Device types
-DeviceType = Literal["cuda", "cpu", "mps", "auto"]
+DeviceType = str
 
 # Data types for model precision
 DType = Literal["float32", "float16", "bfloat16"]
@@ -73,15 +73,38 @@ VRAM_ESTIMATES: dict[str, dict[str, float]] = {
 }
 
 
-def resolve_device(device: DeviceType) -> DeviceType:
-    """Turn the "auto" sentinel into a concrete device; pass everything else through unchanged."""
-    if device != "auto":
-        return device
-    if torch.cuda.is_available():
-        return "cuda"
-    if torch.backends.mps.is_available():
+def resolve_device(device: DeviceType | None) -> DeviceType:
+    """Resolve legacy automatic selection and validate explicit devices."""
+    if device is None or device == "auto":
+        if torch.cuda.is_available():
+            return "cuda"
+        mps = getattr(torch.backends, "mps", None)
+        if mps is not None and mps.is_available():
+            return "mps"
+        return "cpu"
+    if isinstance(device, torch.device):
+        device = str(device)
+    if device == "cpu":
+        return "cpu"
+    if device == "mps":
+        mps = getattr(torch.backends, "mps", None)
+        if mps is None or not mps.is_available():
+            raise RuntimeError("MPS was explicitly requested but is not available")
         return "mps"
-    return "cpu"
+    if device == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA was explicitly requested but is not available")
+        return "cuda"
+    if not isinstance(device, str) or not device.startswith("cuda:"):
+        raise ValueError("device must be None, 'auto', 'cpu', 'cuda', 'cuda:N', or 'mps'")
+    index = device[5:]
+    if not index.isdigit():
+        raise ValueError("CUDA device index must be a non-negative integer")
+    if torch.cuda.is_available():
+        if int(index) < torch.cuda.device_count():
+            return device
+        raise RuntimeError(f"CUDA device index {index} is not available")
+    raise RuntimeError("CUDA was explicitly requested but is not available")
 
 
 def get_torch_dtype(dtype: DType) -> torch.dtype:
@@ -104,7 +127,11 @@ def get_model_name(size: str) -> str:
         HuggingFace model ID (e.g., "facebook/sam-audio-base")
     """
     if size in MODEL_NAME_MAP:
-        return MODEL_NAME_MAP[size]
+        # TOML is the package runtime source for official model identifiers;
+        # keep MODEL_NAME_MAP as a public compatibility fallback.
+        from .checkpoints import checkpoint_info
+
+        return checkpoint_info(size).get("model_id", MODEL_NAME_MAP[size])
     # If it's already a full model name, return as-is
     return size
 

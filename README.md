@@ -198,10 +198,14 @@ with SamAudioSession(model="base", device="cuda") as session:
     result.save("vocals.wav")
 ```
 
-`load()` is explicit, `infer()` is ready-only, `release()` drops live model
-memory while retaining the disk cache, and `close()` permanently ends the
-session. The legacy `SamAudio.from_pretrained(...).separate(...)` API remains
-available for compatibility.
+`load()` is idempotent, `infer()` is ready-only, `release()` drops live model
+memory while allowing a later reload, and `close()` permanently and
+idempotently ends the session. `cache_info()` resolves the exact Hugging Face
+cache repository path without downloading or creating it. Devices support
+legacy `auto` selection plus explicit `cpu`, `cuda`, `cuda:N`, and `mps`;
+unavailable explicit accelerators raise. The legacy
+`SamAudio.from_pretrained(...).separate(...)` API remains available for
+compatibility.
 
 ### Python API
 

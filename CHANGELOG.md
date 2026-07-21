@@ -12,6 +12,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Added package-owned `config/checkpoints.toml` metadata for gated official
   model repositories and generic caller overrides; no weights are bundled or
   mirrored.
+- Added strict explicit device validation for `cpu`, `cuda`, `cuda:N`, and
+  `mps`, preserving legacy automatic selection.
 
 ### Changed
 
@@ -22,6 +24,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   from the shipped inference surface. Existing tests remain green; the
   optional external CLAP preprocessing import is documented as a future
   adapter candidate.
+- `SamAudioSession.release()` is reloadable and `close()` is terminal and
+  idempotent. `cache_info()` now reports the same read-only Hugging Face repo
+  path the loader uses, without contacting gated Hugging Face endpoints.
+- Official shorthand model IDs are now resolved through packaged checkpoint
+  TOML at runtime; `MODEL_NAME_MAP` remains a public compatibility fallback.
 
 ## [0.2.0] - 2026-07-12
 
