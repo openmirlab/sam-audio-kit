@@ -1,7 +1,7 @@
 # Navigation and inference-only audit
 
-Audit date: 2026-07-15  
-Branch: `adopt/sam-github-inference-cleanup`  
+Audit date: 2026-08-19
+Branch: `fix/isolate-clap-import-argv`
 Scope: `src/sam_audio_kit`, packaging metadata, tests, and user-facing release docs.
 
 ## Inference-only gate
@@ -18,9 +18,9 @@ One optional inference feature, `ClapRanker`, uses the upstream LAION-CLAP
 audio-feature helper located in that dependency's `laion_clap.training.data`
 module. This is an external preprocessing import used only when the optional
 text ranker is explicitly enabled; no LAION training code is vendored or
-declared as an OpenMIRLab runtime module. It remains a documented non-blocking
-warning for a future adapter extraction, because replacing it now would risk
-changing ranking numerics without a golden fixture.
+declared as an OpenMIRLab runtime module. The import is wrapped in a temporary
+argv-isolation boundary because the dependency parses process arguments at
+import time.
 
 ## Evidence
 
@@ -73,7 +73,8 @@ changing ranking numerics without a golden fixture.
   model behavior changes.
 - `ClapRanker` retains the external LAION-CLAP preprocessing import described
   above. Extracting that helper is a phase-2 candidate once ranking fixtures
-  are available.
+  are available; the current import boundary prevents host CLI flags from
+  leaking into the dependency.
 
 ### ❌ Errors
 

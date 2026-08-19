@@ -17,6 +17,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- Isolated the optional LAION-CLAP preprocessing import from host process CLI
+  arguments. Server applications can now load the text ranker without
+  `laion_clap` consuming flags such as `--port` or `--device` at import time.
 - Clarified that public GitHub source/releases and GitHub installation are
   allowed under the mixed-license terms, while PyPI remains held as a
   separate distribution-channel decision.

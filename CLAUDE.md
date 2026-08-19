@@ -72,6 +72,10 @@ verified against primary sources rather than trusted as-is:
 - DACVAE audio codec
 - LAION-CLAP for text ranking
 
+The optional `ClapRanker` imports LAION-CLAP's legacy preprocessing module inside a temporary
+argv-isolation boundary. LAION-CLAP parses process arguments at import time; host applications
+must not have server flags such as `--port` or `--device` consumed by that dependency.
+
 ## Project Structure
 
 ```

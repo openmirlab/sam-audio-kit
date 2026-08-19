@@ -1,11 +1,33 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates. All Rights Reserved\n
 
+import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
+from importlib import import_module
+
 import torch
 import torchaudio
 from huggingface_hub import hf_hub_download
 
 from ..model.config import ClapRankerConfig
 from .ranker import Ranker
+
+
+@contextmanager
+def _isolated_process_argv() -> Iterator[None]:
+    """Hide host CLI flags from LAION-CLAP's legacy import-time parser."""
+    original_argv = sys.argv
+    try:
+        sys.argv = original_argv[:1]
+        yield
+    finally:
+        sys.argv = original_argv
+
+
+def _load_laion_data_module():
+    """Import LAION-CLAP preprocessing without inheriting the host process CLI."""
+    with _isolated_process_argv():
+        return import_module("laion_clap.training.data")
 
 
 def get_model(checkpoint_file=None, device="cpu"):
@@ -32,9 +54,7 @@ def get_model(checkpoint_file=None, device="cpu"):
 
 class ClapRanker(Ranker):
     def __init__(self, config: ClapRankerConfig):
-        from laion_clap.training import data
-
-        self.laion_data_module = data
+        self.laion_data_module = _load_laion_data_module()
         super().__init__()
         self.config = config
         self.model = get_model(checkpoint_file=config.checkpoint)
