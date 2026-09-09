@@ -19,7 +19,7 @@ load_dotenv()
 
 from .chunking import AudioChunker
 from .inference import SeparationResult, separate_audio, load_audio
-from .lite import LiteModelConfig, create_lite_model, is_lite_model, get_config_description
+from .lite import LiteModelConfig, components_to_skip, create_lite_model, is_lite_model, get_config_description
 from .memory import cleanup_gpu_memory, get_gpu_memory_info, MemoryTracker
 from .types import (
     AudioInput,
@@ -209,8 +209,19 @@ class SamAudio:
         # Import SAM-Audio (extracted and bundled within sam-audio-kit)
         from .sam_audio import SAMAudio, SAMAudioProcessor
 
+        # Build lite config based on enabled features -- decided *before* loading so the
+        # components it would delete are never built (~20 s and ~7 GB host RAM on base).
+        if enable_text_ranker and enable_span_predictor:
+            lite_config = LiteModelConfig.with_all_features()
+        elif enable_text_ranker:
+            lite_config = LiteModelConfig.with_text_ranker()
+        elif enable_span_predictor:
+            lite_config = LiteModelConfig.with_span_predictor()
+        else:
+            lite_config = LiteModelConfig.aggressive()
+
         # Load model and processor
-        model_kwargs = {}
+        model_kwargs = {"skip": components_to_skip(lite_config)}
         if hf_token:
             model_kwargs["token"] = hf_token
         if cache_dir:
@@ -227,16 +238,6 @@ class SamAudio:
         # Apply lite mode optimizations (always enabled for audio-only inference)
         if verbose:
             print("  Applying lite mode optimizations...")
-
-        # Build lite config based on enabled features
-        if enable_text_ranker and enable_span_predictor:
-            lite_config = LiteModelConfig.with_all_features()
-        elif enable_text_ranker:
-            lite_config = LiteModelConfig.with_text_ranker()
-        elif enable_span_predictor:
-            lite_config = LiteModelConfig.with_span_predictor()
-        else:
-            lite_config = LiteModelConfig.aggressive()
 
         model = create_lite_model(model, lite_config)
 

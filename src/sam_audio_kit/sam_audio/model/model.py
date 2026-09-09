@@ -87,11 +87,26 @@ class SAMAudio(BaseModel):
     config_cls = SAMAudioConfig
     revision = None
 
-    def __init__(self, cfg: SAMAudioConfig):
+    SKIPPABLE = frozenset(
+        {"vision_encoder", "visual_ranker", "text_ranker", "span_predictor"}
+    )
+    """Components that can be left unbuilt with `skip=`; each is None when skipped.
+
+    These are exactly the components `sam_audio_kit.lite` deletes after loading. Building
+    them first costs ~20 s and ~7 GB of host RAM on the base model (the span predictor and
+    CLAP ranker each pull their own pretrained weights from the Hub) only to be thrown away.
+    """
+
+    def __init__(self, cfg: SAMAudioConfig, skip: frozenset = frozenset()):
         super().__init__()
+        unknown = set(skip) - self.SKIPPABLE
+        if unknown:
+            raise ValueError(f"cannot skip {sorted(unknown)}; skippable: {sorted(self.SKIPPABLE)}")
         self.audio_codec = DACVAE(cfg.audio_codec)
         self.text_encoder = T5TextEncoder(cfg.text_encoder)
-        self.vision_encoder = PerceptionEncoder(cfg.vision_encoder)
+        self.vision_encoder = (
+            None if "vision_encoder" in skip else PerceptionEncoder(cfg.vision_encoder)
+        )
         self.transformer = DiT(cfg.transformer)
         self.proj = torch.nn.Linear(cfg.in_channels, cfg.transformer.dim)
         self.align_masked_video = AlignModalities(
@@ -102,9 +117,16 @@ class SAMAudio(BaseModel):
         )
         self.memory_proj = torch.nn.Linear(cfg.text_encoder.dim, cfg.transformer.dim)
         self.timestep_emb = SinusoidalEmbedding(cfg.transformer.dim)
-        self.visual_ranker = create_ranker(cfg.visual_ranker)
-        self.text_ranker = create_ranker(cfg.text_ranker)
-        if cfg.span_predictor is not None:
+        self.visual_ranker = (
+            None if "visual_ranker" in skip else create_ranker(cfg.visual_ranker)
+        )
+        self.text_ranker = (
+            None if "text_ranker" in skip else create_ranker(cfg.text_ranker)
+        )
+        if "span_predictor" in skip:
+            self.span_predictor = None
+            self.span_predictor_transform = None
+        elif cfg.span_predictor is not None:
             self.span_predictor = PEAudioFrame.from_config(
                 cfg.span_predictor, pretrained=True
             )
@@ -197,7 +219,8 @@ class SAMAudio(BaseModel):
     def _get_video_features(self, video, audio_features):
         B, T, _ = audio_features.shape
         if video is None:
-            return audio_features.new_zeros(B, self.vision_encoder.dim, T)
+            dim = self.vision_encoder.dim if self.vision_encoder is not None else self.align_masked_video.conv.weight.shape[1]
+            return audio_features.new_zeros(B, dim, T)
         else:
             return self.vision_encoder(video).transpose(1, 2)
 

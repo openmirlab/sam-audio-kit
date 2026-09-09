@@ -17,6 +17,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- `SamAudio.from_pretrained` no longer builds the components lite mode deletes
+  (vision encoder, rankers, span predictor), reads the checkpoint through
+  `mmap`, and skips random parameter initialisation. Base model on a 4090:
+  load 33 s -> 5 s, host RAM peak 22 GB -> 5.8 GB, output bit-identical.
 - Isolated the optional LAION-CLAP preprocessing import from host process CLI
   arguments. Server applications can now load the text ranker without
   `laion_clap` consuming flags such as `--port` or `--device` at import time.

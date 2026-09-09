@@ -2,6 +2,7 @@
 
 import json
 import os
+from contextlib import contextmanager
 from typing import Callable, Dict, Optional, Union
 
 import torch
@@ -26,8 +27,15 @@ class BaseModel(torch.nn.Module, ModelHubMixin):
         map_location: str = "cpu",
         strict: bool = True,
         revision: Optional[str] = None,
+        skip: frozenset = frozenset(),
         **model_kwargs,
     ):
+        """Build the model and load its checkpoint.
+
+        `skip` names top-level components to leave unbuilt (see `SAMAudio.SKIPPABLE`);
+        their checkpoint entries are dropped before `load_state_dict` so strict loading
+        still holds for everything that was built.
+        """
         if os.path.isdir(model_id):
             cached_model_dir = model_id
         else:
@@ -48,11 +56,50 @@ class BaseModel(torch.nn.Module, ModelHubMixin):
                 config[key] = value
 
         config = cls.config_cls(**config)
-        model = cls(config)
+        with no_random_init():
+            model = cls(config, skip=skip) if skip else cls(config)
+        # mmap: the file is paged in lazily, so tensors for skipped components are never
+        # read at all, and nothing is copied twice (page cache -> copy into the module).
         state_dict = torch.load(
             os.path.join(cached_model_dir, "checkpoint.pt"),
             weights_only=True,
             map_location=map_location,
+            mmap=True,
         )
-        model.load_state_dict(state_dict, strict=strict)
+        model.load_state_dict(drop_skipped(state_dict, skip), strict=strict)
         return model
+
+
+_INIT_FNS = (
+    "uniform_", "normal_", "trunc_normal_", "constant_", "ones_", "zeros_", "eye_",
+    "dirac_", "xavier_uniform_", "xavier_normal_", "kaiming_uniform_", "kaiming_normal_",
+    "orthogonal_", "sparse_",
+)
+
+
+@contextmanager
+def no_random_init():
+    """Make `torch.nn.init.*` no-ops while a model is built.
+
+    Every parameter the constructor creates is overwritten by the checkpoint a moment
+    later (strict loading guarantees it), so the random initialisation is pure waste:
+    ~3 s of CPU on the 1.4 B-parameter base model. Sub-models that load their own
+    weights (T5 through transformers, the CLAP ranker) do not go through these
+    functions and are unaffected.
+    """
+    saved = {name: getattr(torch.nn.init, name) for name in _INIT_FNS}
+    try:
+        for name in _INIT_FNS:
+            setattr(torch.nn.init, name, lambda tensor, *a, **k: tensor)
+        yield
+    finally:
+        for name, fn in saved.items():
+            setattr(torch.nn.init, name, fn)
+
+
+def drop_skipped(state_dict: dict[str, torch.Tensor], skip) -> dict[str, torch.Tensor]:
+    """Return `state_dict` without the entries belonging to the top-level modules in `skip`."""
+    if not skip:
+        return state_dict
+    prefixes = tuple(f"{name}." for name in skip)
+    return {k: v for k, v in state_dict.items() if not k.startswith(prefixes)}
