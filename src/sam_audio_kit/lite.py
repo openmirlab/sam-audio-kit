@@ -193,6 +193,24 @@ class LiteModelConfig:
         )
 
 
+def components_to_skip(config: "LiteModelConfig") -> frozenset:
+    """Components `create_lite_model(config)` would delete, so they need not be built.
+
+    Passing this as `skip=` to `SAMAudio.from_pretrained` turns the load from
+    "build everything, then delete most of it" into "build only what stays".
+    """
+    skip = set()
+    if config.remove_vision_encoder:
+        skip.add("vision_encoder")
+    if config.remove_visual_ranker:
+        skip.add("visual_ranker")
+    if config.remove_text_ranker:
+        skip.add("text_ranker")
+    if config.remove_span_predictor:
+        skip.add("span_predictor")
+    return frozenset(skip)
+
+
 def _get_vision_encoder_dim(model: Any) -> int:
     """Extract the vision encoder output dimension before removal."""
     # First, try to get the dimension from align_masked_video layer
