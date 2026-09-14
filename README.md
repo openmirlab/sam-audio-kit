@@ -190,6 +190,16 @@ registry (`src/sam_audio_kit/config/checkpoints.toml`) records official model
 URLs and provenance. The registry contains no weights and accepts explicit
 metadata overrides for mirrors or deployment manifests.
 
+Every registry entry pins a `source_revision` (a commit, never a floating
+`"main"`) and a `sha256`/`size_bytes` for its primary artifact; `download_model()`
+downloads at that pinned revision and verifies the downloaded artifact's
+digest, raising `ChecksumMismatchError` on a mismatch. These digests were
+read from the Hub's own git-LFS-recorded metadata
+(`HfApi().model_info(..., files_metadata=True)`), **not** independently
+re-hashed against downloaded bytes — see
+["What this project will NEVER bundle"](#what-this-project-will-never-bundle)
+for that limitation.
+
 ```python
 from sam_audio_kit import SamAudioSession
 
@@ -328,6 +338,18 @@ product:
   `facebook/sam-audio-base` / `-large` / `-judge`, no flag or environment
   variable in this package will get you the weights — access must come from
   Meta.
+- **Digest verification is metadata-only, not byte-level, today.** The
+  `sha256`/`size_bytes` pinned in `checkpoints.toml` come from one
+  authoritative source — the Hub's own git-LFS-recorded object ID, read via
+  `HfApi().model_info(repo, files_metadata=True)` — confirmed through two
+  separate `huggingface_hub` code paths, but not yet cross-checked against an
+  independently downloaded and re-hashed copy of the file: gated raw-content
+  resolve (`get_hf_file_metadata`) currently 403s for the account used to
+  read this metadata. `download_model()`'s post-download check still compares
+  every real download against this same digest and will refuse a mismatch —
+  it just means the *reference* value itself awaits a from-bytes
+  confirmation, which should happen the first time someone with approved
+  gated access downloads these weights for real.
 - **The same applies to `dacvae`** (see
   ["Installing the audio codec"](#installing-the-audio-codec-dacvae) above):
   it is never vendored or bundled, precisely so this package's own

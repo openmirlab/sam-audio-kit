@@ -7,6 +7,26 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- Pinned every `checkpoints.toml` registry entry (`small`/`base`/`large`, and
+  a new `judge` entry) to a specific commit `source_revision` and a lowercase
+  `sha256`/`size_bytes` for its primary artifact, read from the Hub's
+  git-LFS-recorded metadata (`HfApi().model_info(..., files_metadata=True)`);
+  the toml documents this as metadata-only, not yet byte-level-verified
+  against a downloaded file (gated raw-content resolve currently 403s for the
+  checking account). `download_model()` now downloads at the pinned revision
+  and verifies the downloaded artifact's digest, raising the new
+  `ChecksumMismatchError` on a mismatch (or a `verbose`-gated skip warning
+  for a catalog entry explicitly marked `integrity = "unavailable"`).
+  `resolve_model_cache_path()` accepts an optional `revision=` to name a
+  pinned snapshot specifically, and `SamAudioSession.cache_info()` now uses
+  it so `exists` reflects the *pinned* revision rather than any cached
+  snapshot. `SamAudio.from_pretrained()` threads the same pinned revision
+  into the underlying `SAMAudio.from_pretrained(..., revision=...)` call.
+- Fixed `sam_audio/model/base.py`'s `BaseModel._from_pretrained`, which
+  silently discarded any `revision` argument in favor of the class-level
+  `cls.revision` fallback -- found while wiring the checkpoint-pinning work
+  above; a passed `revision` now takes priority, `cls.revision` remains the
+  default when none is given.
 - Added `SamAudioSession`, an independent load/infer/release/close lifecycle
   facade with status, cache inspection, and context-manager support.
 - Added package-owned `config/checkpoints.toml` metadata for gated official

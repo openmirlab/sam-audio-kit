@@ -47,6 +47,26 @@ package-owned source for official gated model URLs and provenance. It never
 bundles or mirrors weights, and callers may provide explicit metadata
 overrides. Keep the legacy `SamAudio` one-shot API lazy and compatible.
 
+**Checkpoint-catalog contract** (org `checkpoint-catalog.md`, article 4):
+every `[models.*]` entry in `checkpoints.toml` must carry a pinned commit
+`source_revision` (never a floating branch) plus a lowercase `sha256` +
+`size_bytes` for its primary artifact, or an explicit
+`integrity = "unavailable"` with a documented reason — no silent gap.
+`download.py`'s `download_model()` downloads at that pinned revision and
+verifies the digest post-download, raising `ChecksumMismatchError` on a
+mismatch; `resolve_model_cache_path(..., revision=...)` and
+`session.py`'s `cache_info()` resolve the *pinned* snapshot path, not just
+any cached snapshot. `facebook/sam-audio-judge`'s catalog entry pins
+`checkpoint.pt` (not `model.safetensors`) because
+`sam_audio/model/base.py`'s `BaseModel._from_pretrained` hardcodes that
+filename for every `BaseModel` subclass, judge included — confirmed by
+reading that loader, not assumed. `model.py`'s `SamAudio.from_pretrained()`
+threads the catalog's pinned revision through to the underlying
+`SAMAudio.from_pretrained(..., revision=...)` call too, which required
+fixing a real pre-existing bug in `_from_pretrained` that silently
+discarded any passed `revision` in favor of the class-level `cls.revision`
+fallback.
+
 ## Documentation conformance
 
 README reviewed 2026-07-12 against the org's documentation-conformance shape
