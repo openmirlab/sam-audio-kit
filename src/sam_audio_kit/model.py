@@ -228,6 +228,17 @@ class SamAudio:
             model_kwargs["cache_dir"] = str(cache_dir)
         # Note: SAMAudioProcessor doesn't accept cache_dir
 
+        # Pin the same commit checkpoints.toml records for this model, so the
+        # *loaded* runtime never floats on "main" either -- only for the
+        # package's own small/base/large registry entries; a caller-supplied
+        # full HuggingFace ID or local path has no catalog revision to pin.
+        if model_size in MODEL_NAME_MAP:
+            from .checkpoints import checkpoint_info
+
+            pinned_revision = checkpoint_info(model_size).get("source_revision")
+            if pinned_revision:
+                model_kwargs["revision"] = pinned_revision
+
         if verbose:
             print("  Loading model...")
 

@@ -2,8 +2,13 @@
 Model download and warmup utilities for SAM-Audio.
 
 This module provides standalone functions to:
-- Download model files to a configurable cache directory
+- Download model files to a configurable cache directory, pinned to the
+  commit `checkpoints.toml` records for that model (never a floating "main")
+  and sha256-verified against that same catalog entry after download
 - Warmup the model with a dummy inference to cache CUDA kernels
+
+Reads: .checkpoints (checkpoint_info, ChecksumMismatchError); read by: .model
+(SamAudio.from_pretrained), .session (cache_info)
 
 Environment Variables:
     SAM_AUDIO_CACHE_DIR: Directory to cache downloaded models
@@ -11,6 +16,7 @@ Environment Variables:
     HF_TOKEN: HuggingFace API token for gated models
 """
 
+import hashlib
 import os
 import time
 from pathlib import Path
@@ -18,6 +24,7 @@ from typing import Optional, Union
 
 import torch
 
+from .checkpoints import checkpoint_info, ChecksumMismatchError
 from .types import (
     DeviceType,
     DType,
@@ -57,11 +64,62 @@ def get_cache_dir() -> Path:
 def resolve_model_cache_path(
     model_size: Union[str, ModelSize] = "base",
     cache_dir: Optional[Union[str, Path]] = None,
+    revision: Optional[str] = None,
 ) -> Path:
-    """Return Hugging Face's local repository path without creating it."""
+    """Return Hugging Face's local repository path without creating it.
+
+    With `revision` given, appends `snapshots/<revision>` so the result names
+    that specific pinned snapshot rather than just the repo's cache root --
+    lets a caller tell whether the *pinned* revision is cached, not merely
+    whether some (possibly stale) snapshot is.
+    """
     root = Path(cache_dir) if cache_dir is not None else get_cache_dir()
     model_name = get_model_name(model_size)
-    return root / f"models--{model_name.replace('/', '--')}"
+    path = root / f"models--{model_name.replace('/', '--')}"
+    if revision is not None:
+        path = path / "snapshots" / revision
+    return path
+
+
+def _sha256_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(chunk_size), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _verify_artifact(model_key: str, snapshot_dir: Union[str, Path], verbose: bool = True) -> None:
+    """Verify the downloaded artifact named by `[models.<model_key>]` in checkpoints.toml.
+
+    Skips verification (with a `verbose`-gated warning) when the catalog entry
+    marks its integrity as unavailable; raises `ChecksumMismatchError` on a
+    digest mismatch. No-op (silent) for models absent from the registry
+    (e.g. a user-supplied HuggingFace ID or local path).
+    """
+    info = checkpoint_info(model_key)
+    artifact = info.get("artifact")
+    expected_sha256 = info.get("sha256")
+    if artifact is None or (expected_sha256 is None and info.get("integrity") != "unavailable"):
+        # Not a registry-tracked model (or no digest recorded at all) -- nothing to verify.
+        return
+    if info.get("integrity") == "unavailable":
+        if verbose:
+            print(f"  Warning: no verified checksum for {model_key!r} artifact "
+                  f"{artifact!r} (integrity=unavailable) -- skipping verification")
+        return
+    artifact_path = Path(snapshot_dir) / artifact
+    if not artifact_path.exists():
+        raise FileNotFoundError(
+            f"expected artifact {artifact!r} not found in downloaded snapshot {snapshot_dir}"
+        )
+    if verbose:
+        print(f"  Verifying checksum of {artifact}...")
+    actual_sha256 = _sha256_file(artifact_path)
+    if actual_sha256 != expected_sha256:
+        raise ChecksumMismatchError(model_key, artifact, expected_sha256, actual_sha256)
+    if verbose:
+        print(f"  Checksum OK ({actual_sha256})")
 
 
 def get_hf_token() -> Optional[str]:
@@ -124,31 +182,42 @@ def download_model(
 
     # Resolve model name
     model_name = get_model_name(model_size)
+    info = checkpoint_info(model_size)
+    revision = info.get("source_revision")
 
     if verbose:
-        print(f"Downloading {model_name} to {cache_dir}")
+        print(f"Downloading {model_name} to {cache_dir}"
+              + (f" (revision={revision})" if revision else ""))
 
-    # Download main model
+    # Download main model, pinned to its catalog revision (never floats on "main")
     start_time = time.time()
     model_path = snapshot_download(
         repo_id=model_name,
         cache_dir=str(cache_dir),
         token=hf_token,
+        revision=revision,
     )
 
     if verbose:
         elapsed = time.time() - start_time
         print(f"  Downloaded {model_name} in {elapsed:.1f}s")
 
+    _verify_artifact(model_size, model_path, verbose=verbose)
+
     # Optionally download judge model
     if include_judge:
+        judge_info = checkpoint_info("judge")
+        judge_revision = judge_info.get("source_revision")
         if verbose:
-            print("Downloading facebook/sam-audio-judge...")
-        snapshot_download(
+            print("Downloading facebook/sam-audio-judge..."
+                  + (f" (revision={judge_revision})" if judge_revision else ""))
+        judge_path = snapshot_download(
             repo_id="facebook/sam-audio-judge",
             cache_dir=str(cache_dir),
             token=hf_token,
+            revision=judge_revision,
         )
+        _verify_artifact("judge", judge_path, verbose=verbose)
         if verbose:
             print("  Downloaded sam-audio-judge")
 

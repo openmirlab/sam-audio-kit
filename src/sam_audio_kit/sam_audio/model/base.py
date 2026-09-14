@@ -39,9 +39,15 @@ class BaseModel(torch.nn.Module, ModelHubMixin):
         if os.path.isdir(model_id):
             cached_model_dir = model_id
         else:
+            # A caller-supplied `revision` (e.g. sam_audio_kit's own catalog
+            # pin) wins; `cls.revision` is only the class-level fallback
+            # (e.g. `SAMAudioJudgeModel.revision = "sam_audio"`). Fixed here
+            # 2026-09-14: this previously discarded the `revision` parameter
+            # unconditionally, so passing one through `from_pretrained()` was
+            # silently a no-op -- confirmed by reading this call directly.
             cached_model_dir = snapshot_download(
                 repo_id=model_id,
-                revision=cls.revision,
+                revision=revision if revision is not None else cls.revision,
                 cache_dir=cache_dir,
                 force_download=force_download,
                 token=token,

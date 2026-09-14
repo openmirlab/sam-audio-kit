@@ -77,8 +77,9 @@ class SamAudioSession:
         from .download import get_cache_dir, list_cached_models, resolve_model_cache_path
 
         model_id = self._checkpoint.get("model_id", self.model)
+        revision = self._checkpoint.get("source_revision")
         root = Path(self.cache_dir) if self.cache_dir is not None else get_cache_dir()
-        path = resolve_model_cache_path(model_id, root)
+        path = resolve_model_cache_path(model_id, root, revision=revision)
         return {"path": str(path), "exists": path.exists(), "model": model_id,
                 "checkpoints": list_cached_models(root), "status": self.status,
                 "loaded": self._runtime is not None}
