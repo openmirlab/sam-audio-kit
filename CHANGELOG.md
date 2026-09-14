@@ -64,6 +64,26 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   pinned-revision passthrough above; without this fix that passthrough would
   have been a no-op. A passed `revision` now takes priority, `cls.revision`
   remains the default when none is given.
+- **`Processor`'s config fetch still floated on the class-level `revision`
+  default, unlike `BaseModel`.** `Processor._get_config`/`Processor.
+  from_pretrained` (`sam_audio/processor.py`) had no per-call `revision`
+  override at all -- `SAMAudioProcessor.from_pretrained(model_name)`
+  (called from `SamAudio.from_pretrained()`) could never pin a revision,
+  even though the model load right next to it already could.
+  `SAMAudioJudgeProcessor.from_pretrained` had a second, separate floating
+  fetch: its `AutoTokenizer.from_pretrained(model_name_or_path)` call passed
+  no `revision` either. Both now accept an explicit `revision=` that wins
+  over the class default, matching `BaseModel`'s existing idiom;
+  `SamAudio.from_pretrained()` now reuses the exact same `pinned_revision`
+  it already computes for the model load, for the processor call too
+  (previously computed once and silently unused for the processor).
+  `pinned_revision` is now initialized to `None` before the `if model_size
+  in MODEL_NAME_MAP:` block that had been its only definition, so reading it
+  for the processor call is defensively safe even if `get_model_size()`'s
+  fallback behavior ever changes -- today `get_model_size()` always returns
+  `"small"`/`"base"`/`"large"`, so that branch is in practice always taken
+  and this was not a reachable bug, just hardening against relying on that
+  implementation detail.
 
 ## [0.2.0] - 2026-07-12
 

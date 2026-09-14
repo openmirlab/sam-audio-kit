@@ -232,6 +232,10 @@ class SamAudio:
         # *loaded* runtime never floats on "main" either -- only for the
         # package's own small/base/large registry entries; a caller-supplied
         # full HuggingFace ID or local path has no catalog revision to pin.
+        # `pinned_revision` also feeds the processor's own `from_pretrained`
+        # call below, so it stays defined (as None) even when there's no
+        # catalog entry to pin from.
+        pinned_revision = None
         if model_size in MODEL_NAME_MAP:
             from .checkpoints import checkpoint_info
 
@@ -244,7 +248,9 @@ class SamAudio:
 
         with MemoryTracker("Model Loading") if verbose and device == "cuda" else nullcontext():
             model = SAMAudio.from_pretrained(model_name, **model_kwargs)
-            processor = SAMAudioProcessor.from_pretrained(model_name)
+            processor = SAMAudioProcessor.from_pretrained(
+                model_name, revision=pinned_revision
+            )
 
         # Apply lite mode optimizations (always enabled for audio-only inference)
         if verbose:

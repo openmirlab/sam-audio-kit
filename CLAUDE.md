@@ -67,6 +67,16 @@ fixing a real pre-existing bug in `_from_pretrained` that silently
 discarded any passed `revision` in favor of the class-level `cls.revision`
 fallback.
 
+`sam_audio/processor.py`'s `Processor`/`SAMAudioProcessor`/
+`SAMAudioJudgeProcessor.from_pretrained` (and `_get_config`) also accept an
+explicit `revision=` now, same idiom as `BaseModel` (an explicit call wins,
+`cls.revision` is the fallback) -- previously they had no such parameter at
+all, so `model.py`'s processor load always floated on `cls.revision`
+regardless of the pinned revision computed right next to it for the model
+load. `model.py`'s `SamAudio.from_pretrained()` now reuses that same
+`pinned_revision` value for both the model and processor calls, rather than
+computing it once and leaving the processor call unpinned.
+
 ## Documentation conformance
 
 README reviewed 2026-07-12 against the org's documentation-conformance shape

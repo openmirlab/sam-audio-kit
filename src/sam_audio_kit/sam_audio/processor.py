@@ -163,22 +163,27 @@ class Processor:
         self.audio_sampling_rate = audio_sampling_rate
 
     @classmethod
-    def _get_config(cls, model_name_or_path: str):
+    def _get_config(cls, model_name_or_path: str, revision: Optional[str] = None):
         if os.path.exists(model_name_or_path):
             config_path = os.path.join(model_name_or_path, "config.json")
         else:
+            # A caller-supplied `revision` (e.g. sam_audio_kit's own catalog
+            # pin) wins; `cls.revision` is only the class-level fallback --
+            # same idiom as `model/base.py`'s `BaseModel._from_pretrained`.
             config_path = hf_hub_download(
                 repo_id=model_name_or_path,
                 filename="config.json",
-                revision=cls.revision,
+                revision=revision if revision is not None else cls.revision,
             )
         with open(config_path) as fin:
             config = cls.config_cls(**json.load(fin))
         return config
 
     @classmethod
-    def from_pretrained(cls, model_name_or_path: str) -> "Processor":
-        config = cls._get_config(model_name_or_path)
+    def from_pretrained(
+        cls, model_name_or_path: str, revision: Optional[str] = None
+    ) -> "Processor":
+        config = cls._get_config(model_name_or_path, revision=revision)
         return cls(
             audio_hop_length=config.audio_codec.hop_length,
             audio_sampling_rate=config.audio_codec.sample_rate,
@@ -274,9 +279,18 @@ class SAMAudioJudgeProcessor(Processor):
         self.tokenizer = tokenizer
 
     @classmethod
-    def from_pretrained(cls, model_name_or_path: str) -> "SAMAudioJudgeProcessor":
-        config = cls._get_config(model_name_or_path)
-        tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+    def from_pretrained(
+        cls, model_name_or_path: str, revision: Optional[str] = None
+    ) -> "SAMAudioJudgeProcessor":
+        resolved_revision = revision if revision is not None else cls.revision
+        config = cls._get_config(model_name_or_path, revision=resolved_revision)
+        # The tokenizer fetch is a second, separate request against the same
+        # repo -- it must not stay unpinned while the config fetch above is
+        # pinned, or the "fix" just moves the same floating-ref bug down one
+        # line.
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name_or_path, revision=resolved_revision
+        )
         return cls(
             audio_hop_length=config.audio_codec.hop_length,
             audio_sampling_rate=config.audio_codec.sample_rate,
