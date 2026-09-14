@@ -145,4 +145,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=sam_audio_kit"
+addopts = "-v --cov=sam_audio_kit -m 'not network'"
+markers = [
+    "network: needs live network/HF access; deselected by default, run with -m network",
+]

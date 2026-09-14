@@ -74,7 +74,8 @@ def test_cache_info_is_read_only_and_uses_toml_default_or_custom_path(tmp_path):
     cache_root = tmp_path / "cache"
     default = SamAudioSession(device="cpu", cache_dir=cache_root)
     info = default.cache_info()
-    assert info["path"] == str(resolve_model_cache_path("base", cache_root))
+    pinned_revision = checkpoint_info("base")["source_revision"]
+    assert info["path"] == str(resolve_model_cache_path("base", cache_root, revision=pinned_revision))
     assert info["model"] == checkpoint_info("base")["model_id"]
     assert info["exists"] is False
     assert not cache_root.exists()
@@ -84,7 +85,10 @@ def test_cache_info_is_read_only_and_uses_toml_default_or_custom_path(tmp_path):
         cache_dir=cache_root,
         checkpoint_overrides={"model_id": "example/custom-sam"},
     ).cache_info()
-    assert custom["path"] == str(cache_root / "models--example--custom-sam")
+    # model_id is overridden but "base"'s own pinned source_revision carries through.
+    assert custom["path"] == str(
+        cache_root / "models--example--custom-sam" / "snapshots" / pinned_revision
+    )
     assert custom["model"] == "example/custom-sam"
     assert custom["exists"] is False
 
