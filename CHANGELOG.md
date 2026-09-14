@@ -5,6 +5,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Removed
+
+- **Breaking change.** Removed Apple MLX/Torch MPS support: `device="mps"`
+  (and `"mps:N"`) now raises `ValueError` instead of resolving, and `"auto"`
+  never selects `mps` even when `torch.backends.mps.is_available()` is
+  true (it only ever resolves to `cuda` or `cpu`). MPS support was shipped
+  in the `v0.2.0` GitHub release (2026-07-12) -- not published to PyPI
+  (`sam-audio-kit` has no PyPI release; the project's `v0.2.0` release
+  notes call it "full release, PyPI held") -- so anyone who installed from
+  that git tag/release and explicitly requested `device="mps"` needs to
+  switch to `"cpu"` or `"cuda"`. Apple MLX backends and Torch MPS are out
+  of scope for openmirlab packages per org canon (2026-09-14).
+
 ### Added
 
 - Pinned every `checkpoints.toml` registry entry (`small`/`base`/`large`, and
@@ -31,8 +44,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Added package-owned `config/checkpoints.toml` metadata for gated official
   model repositories and generic caller overrides; no weights are bundled or
   mirrored.
-- Added strict explicit device validation for `cpu`, `cuda`, `cuda:N`, and
-  `mps`, preserving legacy automatic selection.
+- Added strict explicit device validation for `cpu`, `cuda`, and `cuda:N`,
+  preserving legacy automatic selection (superseded within this same
+  Unreleased window by the MPS removal above, which additionally rejects
+  `mps`).
 
 ### Changed
 

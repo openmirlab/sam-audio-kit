@@ -212,8 +212,10 @@ with SamAudioSession(model="base", device="cuda") as session:
 memory while allowing a later reload, and `close()` permanently and
 idempotently ends the session. `cache_info()` resolves the exact Hugging Face
 cache repository path without downloading or creating it. Devices support
-legacy `auto` selection plus explicit `cpu`, `cuda`, `cuda:N`, and `mps`;
-unavailable explicit accelerators raise. The legacy
+legacy `auto` selection plus explicit `cpu`, `cuda`, and `cuda:N`. Apple
+MLX/Torch MPS backends are out of scope for this package -- `device="mps"`
+raises `ValueError`, and `auto` never selects it. Unavailable explicit
+accelerators raise. The legacy
 `SamAudio.from_pretrained(...).separate(...)` API remains available for
 compatibility.
 
