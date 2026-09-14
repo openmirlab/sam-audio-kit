@@ -1,4 +1,11 @@
-"""Read the package-owned, license-aware checkpoint registry."""
+"""Read the package-owned, license-aware checkpoint registry.
+
+Each registry entry pins `source_revision` (a commit sha, not a floating
+branch) plus the primary artifact's `sha256`/`size_bytes` for post-download
+verification (see `.download`'s `_verify_artifact`); a model that genuinely
+has no available digest must say so explicitly (`integrity = "unavailable"`)
+rather than omit the field silently.
+"""
 from __future__ import annotations
 
 from importlib.resources import files
@@ -9,6 +16,18 @@ try:  # Python 3.11+
     import tomllib
 except ModuleNotFoundError:  # Python 3.10
     import tomli as tomllib  # type: ignore[no-redef]
+
+
+class ChecksumMismatchError(Exception):
+    """A downloaded checkpoint artifact's sha256 does not match the catalog entry."""
+
+    def __init__(self, model: str, artifact: str, expected: str, actual: str):
+        self.model, self.artifact = model, artifact
+        self.expected, self.actual = expected, actual
+        super().__init__(
+            f"checksum mismatch for {model!r} artifact {artifact!r}: "
+            f"expected sha256={expected}, got sha256={actual}"
+        )
 
 
 def load_checkpoint_config(path: str | Path | None = None) -> dict[str, Any]:

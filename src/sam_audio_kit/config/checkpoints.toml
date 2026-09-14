@@ -1,5 +1,14 @@
 # Package-owned checkpoint registry.  URLs point to the official gated
 # Hugging Face repositories; this package never bundles or mirrors weights.
+#
+# sha256 / size_bytes below are each artifact's git-LFS-recorded OID, read
+# from the Hub via `HfApi().model_info(repo, files_metadata=True)` (the
+# authoritative Hub record) on 2026-09-14. This is metadata-only: gated
+# raw-content resolve (`get_hf_file_metadata`) 403s for the checking account,
+# so no independent byte-level re-hash of a downloaded file has confirmed
+# these against actual bytes yet -- see checkpoint-catalog contract sec. 4.
+# `source_revision` pins the exact commit each digest was read from; never
+# let it float back to "main".
 
 [models.small]
 model_id = "facebook/sam-audio-small"
@@ -7,8 +16,11 @@ url = "https://huggingface.co/facebook/sam-audio-small"
 size = "gated"
 license = "Meta SAM License"
 provenance = "https://github.com/facebookresearch/sam-audio"
-source_revision = "main"
-updated_at = "2026-07-15"
+source_revision = "20b65f56888142eebe7c37448c6f6b3b32600e9b"
+artifact = "checkpoint.pt"
+sha256 = "8c44fda9821fd9f2ec8977304e3c0f55290d9eacb6bbf25b4b8fb1f69c2a8c06"
+size_bytes = 5100547943
+updated_at = "2026-09-14"
 
 [models.base]
 model_id = "facebook/sam-audio-base"
@@ -16,8 +28,11 @@ url = "https://huggingface.co/facebook/sam-audio-base"
 size = "gated"
 license = "Meta SAM License"
 provenance = "https://github.com/facebookresearch/sam-audio"
-source_revision = "main"
-updated_at = "2026-07-15"
+source_revision = "81f64008f9f957c2b57a45923fb5299c66e9d186"
+artifact = "checkpoint.pt"
+sha256 = "b5f3e29ea7a9e80e90a00da495a8aafe890571f371c4bfb88c052c65a5636839"
+size_bytes = 7725405659
+updated_at = "2026-09-14"
 
 [models.large]
 model_id = "facebook/sam-audio-large"
@@ -25,5 +40,23 @@ url = "https://huggingface.co/facebook/sam-audio-large"
 size = "gated"
 license = "Meta SAM License"
 provenance = "https://github.com/facebookresearch/sam-audio"
-source_revision = "main"
-updated_at = "2026-07-15"
+source_revision = "5f2cd3a9471a08c7282c06036be6893e18de8b70"
+artifact = "checkpoint.pt"
+sha256 = "ca55418b1d23e8c8a4dcc55f259d9801c8f79da0131a66e525d862c1289e3c4f"
+size_bytes = 14861356211
+updated_at = "2026-09-14"
+
+[models.judge]
+model_id = "facebook/sam-audio-judge"
+url = "https://huggingface.co/facebook/sam-audio-judge"
+size = "gated"
+license = "Meta SAM License"
+provenance = "https://github.com/facebookresearch/sam-audio"
+source_revision = "d461b0b9bd4d139966a1a101fa147427eb46638d"
+# BaseModel._from_pretrained (sam_audio/model/base.py) always loads
+# "checkpoint.pt" -- confirmed by reading that loader -- so this is the
+# artifact judge.py actually consumes at load time, not model.safetensors.
+artifact = "checkpoint.pt"
+sha256 = "0d74a94ffbce3804138e4b2320d12c1c06ad2eb4023e3347b5be39802aa82c06"
+size_bytes = 6135410636
+updated_at = "2026-09-14"
