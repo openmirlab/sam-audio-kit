@@ -33,14 +33,20 @@ class TestResolveDevice:
         assert resolved != "auto"
         if torch.cuda.is_available():
             assert resolved == "cuda"
-        elif torch.backends.mps.is_available():
-            assert resolved == "mps"
         else:
             assert resolved == "cpu"
 
     def test_none_preserves_automatic_cpu_fallback(self, monkeypatch):
         monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-        monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
+        assert resolve_device(None) == "cpu"
+
+    def test_auto_never_selects_mps_even_when_available(self, monkeypatch):
+        """Apple MLX/Torch MPS backends are out of scope (org canon,
+        2026-09-14): "auto" must resolve to cuda-else-cpu even on a
+        machine where torch reports MPS as available."""
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+        monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+        assert resolve_device("auto") == "cpu"
         assert resolve_device(None) == "cpu"
 
     def test_explicit_cpu_passes_through_unchanged(self):
@@ -52,13 +58,21 @@ class TestResolveDevice:
         assert resolve_device("cuda") == "cuda"
         assert resolve_device("cuda:1") == "cuda:1"
 
-    def test_unavailable_or_invalid_explicit_accelerator_raises(self, monkeypatch):
+    def test_unavailable_explicit_cuda_raises(self, monkeypatch):
         monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-        monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
         with pytest.raises(RuntimeError, match="CUDA"):
             resolve_device("cuda")
-        with pytest.raises(RuntimeError, match="MPS"):
+
+    def test_explicit_mps_always_raises_value_error(self, monkeypatch):
+        """mps must be rejected outright, even when torch reports it as
+        available -- there is no code path that should ever return it."""
+        monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+        with pytest.raises(ValueError, match="mps"):
             resolve_device("mps")
+        with pytest.raises(ValueError, match="mps"):
+            resolve_device("mps:0")
+
+    def test_invalid_device_string_raises_value_error(self):
         with pytest.raises(ValueError):
             resolve_device("metal")
 

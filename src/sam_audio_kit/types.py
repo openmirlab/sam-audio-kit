@@ -74,29 +74,32 @@ VRAM_ESTIMATES: dict[str, dict[str, float]] = {
 
 
 def resolve_device(device: DeviceType | None) -> DeviceType:
-    """Resolve legacy automatic selection and validate explicit devices."""
+    """Resolve legacy automatic selection and validate explicit devices.
+
+    Apple MLX backends and Torch MPS are out of scope for openmirlab
+    packages (org canon, 2026-09-14): "auto" only ever resolves to "cuda"
+    or "cpu", and any "mps"/"mps:N" request is rejected with a clear
+    ValueError rather than silently routed to the (removed) MPS path.
+    """
     if device is None or device == "auto":
         if torch.cuda.is_available():
             return "cuda"
-        mps = getattr(torch.backends, "mps", None)
-        if mps is not None and mps.is_available():
-            return "mps"
         return "cpu"
     if isinstance(device, torch.device):
         device = str(device)
     if device == "cpu":
         return "cpu"
-    if device == "mps":
-        mps = getattr(torch.backends, "mps", None)
-        if mps is None or not mps.is_available():
-            raise RuntimeError("MPS was explicitly requested but is not available")
-        return "mps"
+    if device == "mps" or (isinstance(device, str) and device.startswith("mps:")):
+        raise ValueError(
+            "device 'mps' is not supported: Apple MLX/Torch MPS backends are "
+            "out of scope for this package. Use 'auto', 'cpu', 'cuda', or 'cuda:N'."
+        )
     if device == "cuda":
         if not torch.cuda.is_available():
             raise RuntimeError("CUDA was explicitly requested but is not available")
         return "cuda"
     if not isinstance(device, str) or not device.startswith("cuda:"):
-        raise ValueError("device must be None, 'auto', 'cpu', 'cuda', 'cuda:N', or 'mps'")
+        raise ValueError("device must be None, 'auto', 'cpu', 'cuda', or 'cuda:N'")
     index = device[5:]
     if not index.isdigit():
         raise ValueError("CUDA device index must be a non-negative integer")
