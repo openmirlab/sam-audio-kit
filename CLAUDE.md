@@ -1,5 +1,8 @@
 # CLAUDE.md - Project Guide for Claude Code
 
+**`docs/`** is local-only by policy (2026-09-14): kept on disk, gitignored,
+never pushed to GitHub.
+
 ## Project Overview
 
 **sam-audio-kit** is a creative audio toolkit built on Meta AI's SAM-Audio model. It provides VRAM-efficient audio separation using natural language descriptions, along with creative synthesis and effects in latent space.

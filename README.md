@@ -264,7 +264,7 @@ for desc in descriptions:
 torchaudio.save("sculpted.wav", current, 48000)
 ```
 
-See [Iterative Subtractive Synthesis](docs/subtractive_synthesis.md) for detailed guide and examples.
+See **Iterative Subtractive Synthesis** (`docs/subtractive_synthesis.md`, local-only, not on GitHub) for detailed guide and examples.
 
 ### Command Line
 
@@ -290,13 +290,13 @@ sam-audio-kit download --model base --warmup
 
 ## Documentation
 
-- [CLI Reference](docs/cli.md) - Command line interface
-- [Python API](docs/api.md) - Python API reference
-- [Configuration](docs/configuration.md) - Models, precision, lite mode settings
-- [Architecture](docs/architecture.md) - How it works and optimization techniques
-- [Iterative Subtractive Synthesis](docs/subtractive_synthesis.md) - Creative semantic filtering
-- [Benchmarks](docs/benchmarks.md) - VRAM and performance benchmarks
-- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+- **CLI Reference** (`docs/cli.md`, local-only, not on GitHub) - Command line interface
+- **Python API** (`docs/api.md`, local-only, not on GitHub) - Python API reference
+- **Configuration** (`docs/configuration.md`, local-only, not on GitHub) - Models, precision, lite mode settings
+- **Architecture** (`docs/architecture.md`, local-only, not on GitHub) - How it works and optimization techniques
+- **Iterative Subtractive Synthesis** (`docs/subtractive_synthesis.md`, local-only, not on GitHub) - Creative semantic filtering
+- **Benchmarks** (`docs/benchmarks.md`, local-only, not on GitHub) - VRAM and performance benchmarks
+- **Troubleshooting** (`docs/troubleshooting.md`, local-only, not on GitHub) - Common issues and solutions
 
 ## Requirements
 
