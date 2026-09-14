@@ -280,7 +280,7 @@ Examples:
         "--device",
         type=str,
         default="cuda",
-        choices=["cuda", "cpu", "mps", "auto"],
+        choices=["cuda", "cpu", "auto"],
         help="Device to run on (default: cuda)",
     )
     sep_parser.add_argument(
@@ -372,7 +372,7 @@ Examples:
         "--device",
         type=str,
         default="cuda",
-        choices=["cuda", "cpu", "mps", "auto"],
+        choices=["cuda", "cpu", "auto"],
         help="Device for warmup (default: cuda)",
     )
     dl_parser.add_argument(

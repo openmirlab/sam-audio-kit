@@ -313,7 +313,7 @@ def download_and_warmup(
     Args:
         model_size: Model size ("small", "base", "large")
         lite_mode: Enable lite mode for reduced VRAM
-        device: Device to run on ("cuda", "cpu", "mps")
+        device: Device to run on ("cuda", "cpu")
         dtype: Data type ("float32", "float16", "bfloat16")
         cache_dir: Directory to cache models
         hf_token: HuggingFace API token

@@ -298,7 +298,7 @@ def _process_single(
 
     # Run inference
     with torch.inference_mode():
-        with torch.autocast(device_type=device if device != "mps" else "cpu", dtype=dtype):
+        with torch.autocast(device_type=device, dtype=dtype):
             result = model.separate(batch, **inference_kwargs)
 
     # Extract results

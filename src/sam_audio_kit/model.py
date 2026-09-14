@@ -117,7 +117,7 @@ class SamAudio:
             dtype: Data type ("float32", "float16", "bfloat16")
             enable_text_ranker: Enable text ranker for better quality (+~3GB VRAM)
             enable_span_predictor: Enable span predictor for time segments (+~3GB VRAM)
-            device: Device to run inference on ("cuda", "cpu", "mps")
+            device: Device to run inference on ("cuda", "cpu")
             chunk_duration: Default chunk duration for long audio (seconds)
             precision_config: PrecisionConfig for fine-grained control over:
                 - matmul_precision: "highest", "high", or "medium"
@@ -369,8 +369,7 @@ class SamAudio:
         batch = self._processor(descriptions=[description], audios=[audio_tensor])
         batch = batch.to(self._device)
         torch_dtype = get_torch_dtype(self._dtype)
-        device_type = self._device if self._device != "mps" else "cpu"
-        with torch.autocast(device_type=device_type, dtype=torch_dtype):
+        with torch.autocast(device_type=self._device, dtype=torch_dtype):
             encoded = self._model.encode_audio(batch)
         return encoded, batch
 
