@@ -84,6 +84,24 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   `"small"`/`"base"`/`"large"`, so that branch is in practice always taken
   and this was not a reachable bug, just hardening against relying on that
   implementation detail.
+- **`SAMAudioJudgeModel`/`SAMAudioJudgeProcessor` hardcoded the moving
+  branch ref `revision = "sam_audio"`**, which had drifted to resolve to a
+  different commit (with a different `checkpoint.pt` digest) than the
+  commit `checkpoints.toml`'s `[models.judge].source_revision` pins --
+  a discrepancy `checkpoints.toml`'s own header comment already flagged
+  when it was written. Both classes now default `revision` to
+  `checkpoint_info("judge")["source_revision"]` instead, so the catalog is
+  the one source of truth; an explicit `revision=` at call time still wins.
+  This does not change which commit the catalog itself pins for `judge`.
+  Also wired live-load-time digest verification for any `BaseModel`
+  subclass that names a `catalog_key` class attribute (currently only
+  `SAMAudioJudgeModel`, `catalog_key = "judge"`): `_from_pretrained` now
+  calls `download.py`'s existing `_verify_artifact` after `snapshot_
+  download`, the same helper `download_model(include_judge=True)` already
+  uses for its own explicit pre-caching path. Both fixes affect a currently
+  dead code path -- no shipped ranker path instantiates
+  `SAMAudioJudgeModel`/`SAMAudioJudgeProcessor` today (`ranking/__init__.py`'s
+  `create_ranker` returns `None` for `JudgeRankerConfig`).
 
 ## [0.2.0] - 2026-07-12
 

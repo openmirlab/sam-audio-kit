@@ -13,6 +13,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torchcodec.decoders import AudioDecoder, VideoDecoder
 from transformers import AutoTokenizer, BatchFeature
 
+from ..checkpoints import checkpoint_info
 from .model.config import SAMAudioConfig, SAMAudioJudgeConfig
 
 logger = logging.getLogger(__name__)
@@ -267,7 +268,12 @@ class SAMAudioProcessor(Processor):
 
 class SAMAudioJudgeProcessor(Processor):
     config_cls = SAMAudioJudgeConfig
-    revision = "sam_audio"
+    # Was hardcoded to the floating branch ref "sam_audio"; now defaults to
+    # the pinned commit the package's own checkpoint catalog records for
+    # `judge`, so this class and `checkpoints.toml` never disagree about
+    # what "the judge revision" means. A caller-supplied `revision=` at
+    # call time still wins -- see `from_pretrained` below.
+    revision = checkpoint_info("judge").get("source_revision")
 
     def __init__(
         self,

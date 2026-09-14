@@ -63,18 +63,22 @@ source_revision = "d461b0b9bd4d139966a1a101fa147427eb46638d"
 # "checkpoint.pt" -- confirmed by reading that loader -- so this is the
 # artifact judge.py actually consumes at load time, not model.safetensors.
 #
-# KNOWN DISCREPANCY (ratification item, not fixed here): SAMAudioJudgeModel
-# hardcodes revision="sam_audio" (a named ref on this repo, not a commit),
-# which resolves today to a DIFFERENT commit (cd52eb977697cc0b25d4ecd309a88d
-# 4af46223ee) whose checkpoint.pt has a different sha256
-# (654d1ae6dd73c1c6a8e15dc5ed942f84c06082af4569d28abbe9f33f8c26b58d, 6135460140
-# bytes) -- confirmed live via model_info(revision="sam_audio"). This pinned
-# d461b0b9... commit's checkpoint.pt digest below is itself confirmed correct
-# for that specific commit (also verified live), but download_model(include_
-# judge=True) pre-caching against it would NOT pre-cache what
-# SAMAudioJudgeModel.from_pretrained() actually loads if ever exercised --
-# no shipped code path currently instantiates it (ranking/__init__.py's
-# create_ranker returns None for JudgeRankerConfig), so this is inert today.
+# RESOLVED DISCREPANCY (was open when this catalog entry was first pinned,
+# now fixed on the branch that added this comment): SAMAudioJudgeModel and
+# SAMAudioJudgeProcessor used to hardcode revision="sam_audio" (a named ref
+# on this repo, not a commit), which resolved to a DIFFERENT commit
+# (cd52eb977697cc0b25d4ecd309a88d4af46223ee) whose checkpoint.pt has a
+# different sha256 (654d1ae6dd73c1c6a8e15dc5ed942f84c06082af4569d28abbe9f33
+# f8c26b58d, 6135460140 bytes) -- confirmed live via
+# model_info(revision="sam_audio"). Both classes now resolve their default
+# `revision` from this entry's own source_revision instead, so
+# download_model(include_judge=True) pre-caching and a live
+# SAMAudioJudgeModel/Processor.from_pretrained() load agree on the same
+# pinned commit and digest below. This commit/digest pair itself was NOT
+# changed by that fix -- only the classes' *source* for their default
+# revision changed, not which commit this catalog pins. Still inert today:
+# no shipped code path instantiates either class (ranking/__init__.py's
+# create_ranker returns None for JudgeRankerConfig).
 artifact = "checkpoint.pt"
 sha256 = "0d74a94ffbce3804138e4b2320d12c1c06ad2eb4023e3347b5be39802aa82c06"
 size_bytes = 6135410636

@@ -41,7 +41,9 @@ class BaseModel(torch.nn.Module, ModelHubMixin):
         else:
             # A caller-supplied `revision` (e.g. sam_audio_kit's own catalog
             # pin) wins; `cls.revision` is only the class-level fallback
-            # (e.g. `SAMAudioJudgeModel.revision = "sam_audio"`). Fixed here
+            # (e.g. `SAMAudioJudgeModel.revision`, which itself now resolves
+            # from the checkpoint catalog's `[models.judge].source_revision`
+            # rather than a hardcoded ref -- see `judge.py`). Fixed here
             # 2026-09-14: this previously discarded the `revision` parameter
             # unconditionally, so passing one through `from_pretrained()` was
             # silently a no-op -- confirmed by reading this call directly.
@@ -53,6 +55,18 @@ class BaseModel(torch.nn.Module, ModelHubMixin):
                 token=token,
                 local_files_only=local_files_only,
             )
+            # Verify the downloaded checkpoint's sha256 against the
+            # package's own catalog, same as `download_model()`'s own
+            # explicit pre-caching path -- only for classes that name a
+            # `catalog_key` (see e.g. `SAMAudioJudgeModel`); a class with
+            # none set (or a repo outside the small/base/large/judge
+            # registry) is left unverified, matching `_verify_artifact`'s
+            # own no-op behavior for untracked models.
+            catalog_key = getattr(cls, "catalog_key", None)
+            if catalog_key is not None:
+                from ...download import _verify_artifact
+
+                _verify_artifact(catalog_key, cached_model_dir, verbose=False)
 
         with open(os.path.join(cached_model_dir, "config.json")) as fin:
             config = json.load(fin)

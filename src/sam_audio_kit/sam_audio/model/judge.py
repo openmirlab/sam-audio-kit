@@ -8,6 +8,7 @@ from ...core.audio_visual_encoder.transformer import BaseModelOutputWithPooling
 from ...core.audio_visual_encoder.transformer import Transformer as PEAVTransformer
 from transformers import AutoModel
 
+from ...checkpoints import checkpoint_info
 from .base import BaseModel
 from .codec import DACVAEEncoder
 from .config import SAMAudioJudgeConfig
@@ -34,7 +35,22 @@ class SAMAudioJudgeOutput:
 
 class SAMAudioJudgeModel(BaseModel):
     config_cls = SAMAudioJudgeConfig
-    revision = "sam_audio"
+    # Was hardcoded to the floating branch ref "sam_audio"; now resolves
+    # from the package's own checkpoint catalog (`checkpoints.toml`'s
+    # `[models.judge].source_revision`), which is the intended single
+    # source of truth -- see that entry's "KNOWN DISCREPANCY" comment for
+    # why the floating ref and the pinned commit used to disagree. A
+    # caller-supplied `revision=` at call time still wins (see
+    # `BaseModel._from_pretrained`).
+    revision = checkpoint_info("judge").get("source_revision")
+    # Names the catalog entry this class's downloaded checkpoint is
+    # verified against inside `BaseModel._from_pretrained` (sha256, via
+    # `download.py`'s `_verify_artifact` -- the same helper
+    # `download_model(include_judge=True)` already uses). Set here rather
+    # than generically on `BaseModel` because the catalog's short registry
+    # keys ("small"/"base"/"large"/"judge") have no generic mapping back
+    # from an arbitrary `model_id` string.
+    catalog_key = "judge"
 
     def __init__(self, config: SAMAudioJudgeConfig):
         super().__init__()

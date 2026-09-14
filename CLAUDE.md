@@ -77,6 +77,20 @@ load. `model.py`'s `SamAudio.from_pretrained()` now reuses that same
 `pinned_revision` value for both the model and processor calls, rather than
 computing it once and leaving the processor call unpinned.
 
+`SAMAudioJudgeModel`/`SAMAudioJudgeProcessor`'s `revision` class attribute
+no longer hardcodes the floating branch ref `"sam_audio"` -- it resolves
+from `checkpoint_info("judge")["source_revision"]` at class-definition
+time, so the catalog stays the single source of truth (a caller-supplied
+`revision=` at call time still overrides it). `BaseModel._from_pretrained`
+also now verifies a downloaded checkpoint's digest against the catalog for
+any subclass naming a `catalog_key` class attribute (`SAMAudioJudgeModel`
+sets `catalog_key = "judge"`), reusing `download.py`'s existing
+`_verify_artifact` -- the same helper `download_model(include_judge=True)`
+already used, now also reachable from the live-load path. Both of these
+changes touch dead code today: no shipped ranker path instantiates
+`SAMAudioJudgeModel`/`SAMAudioJudgeProcessor` (`ranking/__init__.py`'s
+`create_ranker` returns `None` for `JudgeRankerConfig`).
+
 ## Documentation conformance
 
 README reviewed 2026-07-12 against the org's documentation-conformance shape

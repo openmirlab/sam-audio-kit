@@ -8,7 +8,9 @@ This module provides standalone functions to:
 - Warmup the model with a dummy inference to cache CUDA kernels
 
 Reads: .checkpoints (checkpoint_info, ChecksumMismatchError); read by: .model
-(SamAudio.from_pretrained), .session (cache_info)
+(SamAudio.from_pretrained), .session (cache_info), sam_audio.model.base
+(BaseModel._from_pretrained's live-load-time digest verification, gated on
+a subclass naming a `catalog_key` class attribute)
 
 Environment Variables:
     SAM_AUDIO_CACHE_DIR: Directory to cache downloaded models

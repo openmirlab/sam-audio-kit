@@ -351,7 +351,11 @@ product:
   cached file exists at judge's pinned commit to re-hash. `download_model()`'s
   post-download check compares every real download against these digests
   and will refuse a mismatch regardless of which digests await a from-bytes
-  confirmation elsewhere.
+  confirmation elsewhere. The judge model/processor classes now resolve
+  their default `revision` from this same catalog entry instead of a
+  hardcoded branch name, and a live judge model load verifies its
+  checkpoint's digest the same way `download_model(include_judge=True)`
+  does.
 - **The same applies to `dacvae`** (see
   ["Installing the audio codec"](#installing-the-audio-codec-dacvae) above):
   it is never vendored or bundled, precisely so this package's own
