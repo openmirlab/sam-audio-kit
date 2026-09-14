@@ -10,23 +10,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Pinned every `checkpoints.toml` registry entry (`small`/`base`/`large`, and
   a new `judge` entry) to a specific commit `source_revision` and a lowercase
   `sha256`/`size_bytes` for its primary artifact, read from the Hub's
-  git-LFS-recorded metadata (`HfApi().model_info(..., files_metadata=True)`);
-  the toml documents this as metadata-only, not yet byte-level-verified
-  against a downloaded file (gated raw-content resolve currently 403s for the
-  checking account). `download_model()` now downloads at the pinned revision
-  and verifies the downloaded artifact's digest, raising the new
-  `ChecksumMismatchError` on a mismatch (or a `verbose`-gated skip warning
-  for a catalog entry explicitly marked `integrity = "unavailable"`).
+  git-LFS-recorded metadata (`HfApi().model_info(..., files_metadata=True)`).
+  `small`/`base`/`large` were additionally confirmed bit-exact by an
+  independent `sha256sum` re-hash of real downloaded files already present
+  in this machine's local HF cache, which happened to already sit at exactly
+  these pinned commits; `judge` remains metadata-only (gated raw-content
+  resolve 403s for the checking account, and no locally cached file exists
+  at its pinned commit to re-hash) -- see the toml's own header comment for
+  the full per-entry breakdown. `download_model()` now downloads at the
+  pinned revision and verifies the downloaded artifact's digest, raising the
+  new `ChecksumMismatchError` on a mismatch (or a `verbose`-gated skip
+  warning for a catalog entry explicitly marked `integrity = "unavailable"`).
   `resolve_model_cache_path()` accepts an optional `revision=` to name a
   pinned snapshot specifically, and `SamAudioSession.cache_info()` now uses
   it so `exists` reflects the *pinned* revision rather than any cached
   snapshot. `SamAudio.from_pretrained()` threads the same pinned revision
   into the underlying `SAMAudio.from_pretrained(..., revision=...)` call.
-- Fixed `sam_audio/model/base.py`'s `BaseModel._from_pretrained`, which
-  silently discarded any `revision` argument in favor of the class-level
-  `cls.revision` fallback -- found while wiring the checkpoint-pinning work
-  above; a passed `revision` now takes priority, `cls.revision` remains the
-  default when none is given.
 - Added `SamAudioSession`, an independent load/infer/release/close lifecycle
   facade with status, cache inspection, and context-manager support.
 - Added package-owned `config/checkpoints.toml` metadata for gated official
@@ -56,6 +55,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   path the loader uses, without contacting gated Hugging Face endpoints.
 - Official shorthand model IDs are now resolved through packaged checkpoint
   TOML at runtime; `MODEL_NAME_MAP` remains a public compatibility fallback.
+
+### Fixed
+
+- `sam_audio/model/base.py`'s `BaseModel._from_pretrained` always called
+  `snapshot_download(revision=cls.revision)`, silently discarding whatever
+  `revision` a caller passed -- found while wiring `SamAudio.from_pretrained()`'s
+  pinned-revision passthrough above; without this fix that passthrough would
+  have been a no-op. A passed `revision` now takes priority, `cls.revision`
+  remains the default when none is given.
 
 ## [0.2.0] - 2026-07-12
 

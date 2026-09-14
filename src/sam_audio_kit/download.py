@@ -212,7 +212,7 @@ def download_model(
             print("Downloading facebook/sam-audio-judge..."
                   + (f" (revision={judge_revision})" if judge_revision else ""))
         judge_path = snapshot_download(
-            repo_id="facebook/sam-audio-judge",
+            repo_id=judge_info.get("model_id", "facebook/sam-audio-judge"),
             cache_dir=str(cache_dir),
             token=hf_token,
             revision=judge_revision,

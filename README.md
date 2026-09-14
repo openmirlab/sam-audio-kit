@@ -338,18 +338,20 @@ product:
   `facebook/sam-audio-base` / `-large` / `-judge`, no flag or environment
   variable in this package will get you the weights — access must come from
   Meta.
-- **Digest verification is metadata-only, not byte-level, today.** The
-  `sha256`/`size_bytes` pinned in `checkpoints.toml` come from one
-  authoritative source — the Hub's own git-LFS-recorded object ID, read via
-  `HfApi().model_info(repo, files_metadata=True)` — confirmed through two
-  separate `huggingface_hub` code paths, but not yet cross-checked against an
-  independently downloaded and re-hashed copy of the file: gated raw-content
-  resolve (`get_hf_file_metadata`) currently 403s for the account used to
-  read this metadata. `download_model()`'s post-download check still compares
-  every real download against this same digest and will refuse a mismatch —
-  it just means the *reference* value itself awaits a from-bytes
-  confirmation, which should happen the first time someone with approved
-  gated access downloads these weights for real.
+- **Digest verification: `small`/`base`/`large` are byte-level confirmed,
+  `judge` is metadata-only.** Every `sha256`/`size_bytes` in
+  `checkpoints.toml` starts from the Hub's own git-LFS-recorded object ID
+  (`HfApi().model_info(repo, files_metadata=True)`). For `small`/`base`/
+  `large` this was additionally cross-checked with an independent
+  `sha256sum` re-hash of real downloaded files already present in this
+  machine's local Hugging Face cache — which happened to already sit at
+  exactly the pinned commits — and matched bit-exact. `judge` remains
+  metadata-only: gated raw-content resolve (`get_hf_file_metadata`)
+  currently 403s for the account used to read this metadata, and no locally
+  cached file exists at judge's pinned commit to re-hash. `download_model()`'s
+  post-download check compares every real download against these digests
+  and will refuse a mismatch regardless of which digests await a from-bytes
+  confirmation elsewhere.
 - **The same applies to `dacvae`** (see
   ["Installing the audio codec"](#installing-the-audio-codec-dacvae) above):
   it is never vendored or bundled, precisely so this package's own
