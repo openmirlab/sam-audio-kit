@@ -11,6 +11,13 @@ never pushed to GitHub.
 - **Python**: 3.10+
 - **License**: `LicenseRef-Meta-SAM-License AND MIT AND Apache-2.0` (see LICENSING.md for the per-component map -- this is not a plain-MIT package)
 
+CI installs the required `dacvae` codec from upstream commit
+`414c20785fc3a28373073ea8ef7a1316eeeaca6e` before testing; package
+metadata omits its direct Git URL because PyPI rejects URL dependencies.
+Both test and release workflows require real pytest collection and execution;
+the wheel smoke test imports `SamAudio` instead of accepting a missing-codec
+error. README's installation section states the same runtime prerequisite.
+
 ## Release status
 
 Reviewed 2026-07-12. `LICENSE.SAM-AUDIO` section 1.a explicitly grants

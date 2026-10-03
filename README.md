@@ -181,6 +181,11 @@ If it's missing, `sam_audio_kit.sam_audio.model.codec` raises a clear
 `ImportError` with this same instruction rather than failing with a bare
 "module not found".
 
+The test and release workflows install upstream `dacvae` at commit
+`414c20785fc3a28373073ea8ef7a1316eeeaca6e` before importing the package.
+This keeps the codec outside publishable package metadata while making the
+CI tests and wheel import smoke test execute the real model import chain.
+
 ## Quick Start
 
 ### Managed lifecycle (recommended for services)
