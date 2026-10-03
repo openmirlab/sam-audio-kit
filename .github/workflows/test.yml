@@ -9,18 +9,9 @@
 # wheel-from-sdist build/install smoke test per the org's packaging article
 # (openmirlab-skills/plugins/openmirlab/CLAUDE.md, art. 7).
 #
-# KNOWN, INTENTIONAL GAP -- read before "fixing" a skip:
-# tests/test_chunking.py and tests/test_memory.py both import from
-# sam_audio_kit, whose top-level __init__.py unconditionally imports the
-# SAM-Audio model chain, which requires the `dacvae` neural audio codec
-# (src/sam_audio_kit/sam_audio/model/codec.py). dacvae has no PyPI release --
-# PyPI rejects git/URL dependencies in package metadata even under an extra --
-# so it is deliberately NOT installed here (see pyproject.toml and README.md
-# "Installing the audio codec (dacvae)"). Both test files start with
-# `pytest.importorskip("dacvae")` so this environment produces a clean SKIP
-# rather than a collection error; this is not a bug in this workflow. Anyone
-# wanting the real regression coverage runs `pytest` locally after
-# `pip install 'dacvae @ git+https://github.com/facebookresearch/dacvae'`.
+# dacvae has no PyPI release, so it cannot appear in published metadata.
+# CI installs a fixed upstream commit explicitly to test the real import and
+# regression suite; see README.md "Installing the audio codec (dacvae)".
 
 name: Test
 
@@ -52,24 +43,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
+          pip install 'dacvae @ git+https://github.com/facebookresearch/dacvae@414c20785fc3a28373073ea8ef7a1316eeeaca6e'
 
       - name: Run tests
-        # `dacvae` is intentionally not installed in CI (no PyPI release --
-        # see LICENSING.md); every test in tests/ transitively needs it via
-        # sam_audio_kit/__init__.py's unconditional SAM-Audio import, so
-        # both files import-skip entirely here. pytest's own exit code for
-        # "0 items collected" is 5, even though the run legitimately
-        # reports "2 skipped" -- that's an accepted, documented outcome in
-        # this environment, not a real failure, so exit 5 specifically is
-        # tolerated. Any other nonzero exit (a real failure/error) still
-        # fails the job. See CHANGELOG.md for the follow-up (lazy import in
-        # __init__.py) that would let non-dacvae tests run for real here.
-        run: |
-          set +e
-          pytest tests/ --cov=sam_audio_kit
-          code=$?
-          set -e
-          if [ "$code" -ne 0 ] && [ "$code" -ne 5 ]; then exit "$code"; fi
+        run: pytest tests/ --cov=sam_audio_kit
 
   build:
     runs-on: ubuntu-latest
@@ -101,31 +78,12 @@ jobs:
           python -m venv /tmp/wheel-check-venv
           /tmp/wheel-check-venv/bin/pip install --upgrade pip
           /tmp/wheel-check-venv/bin/pip install dist/*.whl
+          /tmp/wheel-check-venv/bin/pip install 'dacvae @ git+https://github.com/facebookresearch/dacvae@414c20785fc3a28373073ea8ef7a1316eeeaca6e'
 
       - name: Import smoke test (touch a public symbol)
         run: |
           /tmp/wheel-check-venv/bin/python - <<'PY'
-          import sys
-
-          # See the top-of-file note: importing sam_audio_kit unconditionally
-          # requires the un-publishable `dacvae` codec, which this workflow
-          # intentionally does not install. A wheel that installs but is
-          # empty/broken (the exact regression this smoke test exists to
-          # catch -- see org CLAUDE.md art. 7) fails differently: a bare
-          # ModuleNotFoundError for sam_audio_kit itself, or an AttributeError
-          # with no real traceback through the package's modules. So: accept
-          # either a real import (touch a public symbol) or the one specific,
-          # documented ImportError -- and fail on anything else.
-          try:
-              import sam_audio_kit
-          except ImportError as exc:
-              if "dacvae" not in str(exc):
-                  print(f"UNEXPECTED import failure (not the documented dacvae gap): {exc!r}", file=sys.stderr)
-                  raise
-              print("Wheel installs and executes real package code; hit the")
-              print("documented dacvae guard (expected in this dacvae-free CI):")
-              print(exc)
-          else:
-              assert hasattr(sam_audio_kit, "SamAudio"), "SamAudio symbol missing from a successful import"
-              print(f"OK: imported sam_audio_kit {sam_audio_kit.__version__}, touched SamAudio")
+          import sam_audio_kit
+          assert hasattr(sam_audio_kit, "SamAudio")
+          print(f"OK: imported sam_audio_kit {sam_audio_kit.__version__}, touched SamAudio")
           PY
