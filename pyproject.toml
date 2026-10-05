@@ -65,13 +65,8 @@ dependencies = [
 
     # Audio processing
     "torchcodec>=0.1.0",
-    # NOTE: dacvae (the neural audio codec used by the core SAM-Audio model,
-    # see src/sam_audio_kit/sam_audio/model/codec.py) is intentionally NOT
-    # listed here. It has no PyPI release, and PyPI's upload validation
-    # rejects any package whose metadata contains a direct URL/VCS dependency
-    # (git+https://...) -- even under an optional-dependencies extra. Declaring
-    # it here would make sam-audio-kit permanently unpublishable to PyPI.
-    # Install it manually -- see README.md "Installing the audio codec (dacvae)".
+    # Neural audio codec used by the core SAM-Audio model.
+    "dacvae @ git+https://github.com/facebookresearch/dacvae.git@414c20785fc3a28373073ea8ef7a1316eeeaca6e",
 
     # ODE solver for diffusion
     "torchdiffeq>=0.2.0",
@@ -149,3 +144,6 @@ addopts = "-v --cov=sam_audio_kit -m 'not network'"
 markers = [
     "network: needs live network/HF access; deselected by default, run with -m network",
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
