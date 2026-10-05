@@ -218,3 +218,7 @@ uv run pytest tests/ --cov=sam_audio_kit
 
 - `HF_TOKEN` or `HUGGINGFACE_TOKEN`: Required for gated model access
 - See `.env.example` for template
+
+## Distribution policy (2026-10-05)
+
+Install the current source from `https://github.com/openmirlab/sam-audio-kit`. GitHub release workflows verify and build distributions but do not upload to PyPI. Existing PyPI versions, where any exist, are historical snapshots. Update installation examples to use Git when changing this package.

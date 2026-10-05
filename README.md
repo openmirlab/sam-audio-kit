@@ -1,12 +1,13 @@
 # sam-audio-kit
 
+> **Current installation:** `pip install "sam-audio-kit @ git+https://github.com/openmirlab/sam-audio-kit.git"`
+> OpenMIRLab no longer publishes new versions to PyPI. Any existing PyPI releases are historical snapshots.
+
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: Mixed](https://img.shields.io/badge/License-Mixed%20(see%20LICENSING.md)-orange.svg)](LICENSING.md)
 
-**GitHub source/release only (PyPI held).** Public GitHub releases and GitHub
-installation are allowed under the mixed-license terms documented in
-[LICENSING.md](LICENSING.md). PyPI publication remains on hold as a separate
-distribution-channel decision; this is policy guidance, not legal advice.
+**GitHub source/release only.** Review the mixed-license terms in
+[LICENSING.md](LICENSING.md) before installing or redistributing.
 
 Inference-only package for [SAM-Audio](https://github.com/facebookresearch/sam-audio) (Segment Anything for Audio) by Meta AI.
 
@@ -119,9 +120,7 @@ If you use SAM Audio in your research, please cite the original paper:
 
 ## Installation
 
-This package is intentionally **not published to PyPI**. Install the public
-source directly from GitHub (or clone it first); this keeps the distribution
-channel explicit while the PyPI decision remains open.
+Install the public source directly from GitHub, or clone it for development.
 
 ```bash
 # Direct GitHub install
@@ -166,12 +165,9 @@ use; this documentation is not legal advice.
 ### Installing the audio codec (dacvae)
 
 The core SAM-Audio model uses Meta's [`dacvae`](https://github.com/facebookresearch/dacvae)
-neural audio codec (Apache-2.0) to encode/decode waveforms. It is **not** a
-declared dependency of this package -- `dacvae` has no PyPI release, and
-PyPI's upload validation rejects any package whose metadata contains a direct
-git/URL dependency (even under an optional extra), so declaring it here would
-make sam-audio-kit permanently unpublishable. Install it manually before
-using `SamAudio`:
+neural audio codec (Apache-2.0) to encode/decode waveforms. The package now
+installs a pinned Git revision of `dacvae` automatically. If you installed an
+older revision of sam-audio-kit, install the codec manually:
 
 ```bash
 pip install "dacvae @ git+https://github.com/facebookresearch/dacvae"
