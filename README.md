@@ -118,7 +118,7 @@ If you use SAM Audio in your research, please cite the original paper:
   `src/sam_audio_kit/sam_audio/**` is a thin extraction of the upstream model,
   not a redesign
 
-## Installation
+## Install
 
 Install the public source directly from GitHub, or clone it for development.
 
