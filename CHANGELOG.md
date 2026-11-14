@@ -9,6 +9,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- Remove `xformers` from core dependencies and import it only for the optional
+  `fmha` attention path. The default `sdpa` calculation is unchanged. Current
+  xformers 0.0.36 removed the imported `AttentionBias` symbol and broke clean
+  installs; `fmha` now gives a targeted compatibility hint.
+
 ### Removed
 
 - **Breaking change.** Removed Apple MLX/Torch MPS support: `device="mps"`

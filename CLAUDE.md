@@ -14,9 +14,12 @@ never pushed to GitHub.
 Core package metadata declares `dacvae` at upstream commit
 `414c20785fc3a28373073ea8ef7a1316eeeaca6e`. CI obtains that codec through
 the package installation. This direct Git reference works for the maintained
-GitHub-source install but blocks a PyPI release. `torchcodec` and `xformers`
-are also binary core dependencies; replacing or optionalizing them needs
-parity and installed-wheel evidence, not a metadata-only edit.
+GitHub-source install but blocks a PyPI release. `torchcodec` remains a binary
+core dependency for file decoding. The default `sdpa` path no longer imports
+`xformers`; its optional `fmha` path imports the known-working
+`xformers==0.0.33.post2` on demand and gives an install hint otherwise.
+This split was checked against a deterministic pre-edit `sdpa` output and
+the offline suite; full-model numerical parity still needs a real-weight run.
 Both test and release workflows require real pytest collection and execution;
 the wheel smoke test imports `SamAudio` instead of accepting a missing-codec
 error. README's installation section states the same runtime prerequisite.

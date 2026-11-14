@@ -170,7 +170,9 @@ declares a pinned Git revision of `dacvae` in its core dependencies, so the
 GitHub-source installation above installs it automatically. This direct Git
 reference prevents publishing the current package metadata on PyPI; the
 GitHub source is the supported installation channel. Source installation also
-requires binary `torchcodec` and `xformers` packages. If dependencies were
+requires binary `torchcodec`. The optional `attn_impl="fmha"` path requires
+`xformers==0.0.33.post2` to be installed separately; the default `sdpa` path
+does not import it. If dependencies were
 intentionally skipped during installation, restore the same codec revision:
 
 ```bash

@@ -74,7 +74,6 @@ dependencies = [
     # Vision encoder dependencies
     "timm>=0.9.0",
     "einops>=0.7.0",
-    "xformers>=0.0.20",
 
     # CLAP text ranker
     "laion-clap>=1.1.0",

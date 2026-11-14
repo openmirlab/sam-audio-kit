@@ -3,14 +3,13 @@
 import math
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.attention.flex_attention import (BlockMask, _mask_mod_signature,
                                                flex_attention)
-from xformers.ops import AttentionBias, fmha
 
 
 
@@ -391,7 +390,7 @@ class Attention(nn.Module):
         x: torch.Tensor,
         freq_cis: torch.Tensor,
         tok_idx: Optional[torch.Tensor] = None,
-        mask: Optional[Union[BlockMask, AttentionBias, str]] = None,
+        mask: Optional[Any] = None,
         attn_impl: str = "sdpa",
     ) -> torch.Tensor:
         # B S D
@@ -423,6 +422,13 @@ class Attention(nn.Module):
             output = output.transpose(1, 2).contiguous()  # B H S D -> B S H D
 
         elif attn_impl == "fmha":
+            try:
+                from xformers.ops import AttentionBias, fmha
+            except ImportError as exc:
+                raise ImportError(
+                    "attn_impl='fmha' requires a compatible xformers build; "
+                    "install xformers==0.0.33.post2 or use the default 'sdpa' implementation"
+                ) from exc
             assert mask is None or isinstance(mask, AttentionBias)
             output = fmha.memory_efficient_attention(xq, xk, xv, attn_bias=mask)
             # This uses B S H D instead of B H S D of pytorch
@@ -570,7 +576,7 @@ class TransformerBlock(nn.Module):
         x: torch.Tensor,
         freq_cis: torch.Tensor,
         tok_idx: Optional[torch.Tensor] = None,
-        mask: Optional[Union[BlockMask, AttentionBias, str]] = None,
+        mask: Optional[Any] = None,
         attn_impl: str = "sdpa",
     ) -> torch.Tensor:
 
@@ -617,7 +623,7 @@ class BaseTransformer(nn.Module):
         self,
         h,
         tok_idx: Optional[torch.Tensor] = None,
-        mask: Optional[Union[BlockMask, AttentionBias, str]] = None,
+        mask: Optional[Any] = None,
         attn_impl: str = "sdpa",
     ):
 
