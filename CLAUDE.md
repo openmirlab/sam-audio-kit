@@ -11,9 +11,12 @@ never pushed to GitHub.
 - **Python**: 3.10+
 - **License**: `LicenseRef-Meta-SAM-License AND MIT AND Apache-2.0` (see LICENSING.md for the per-component map -- this is not a plain-MIT package)
 
-CI installs the required `dacvae` codec from upstream commit
-`414c20785fc3a28373073ea8ef7a1316eeeaca6e` before testing; package
-metadata omits its direct Git URL because PyPI rejects URL dependencies.
+Core package metadata declares `dacvae` at upstream commit
+`414c20785fc3a28373073ea8ef7a1316eeeaca6e`. CI obtains that codec through
+the package installation. This direct Git reference works for the maintained
+GitHub-source install but blocks a PyPI release. `torchcodec` and `xformers`
+are also binary core dependencies; replacing or optionalizing them needs
+parity and installed-wheel evidence, not a metadata-only edit.
 Both test and release workflows require real pytest collection and execution;
 the wheel smoke test imports `SamAudio` instead of accepting a missing-codec
 error. README's installation section states the same runtime prerequisite.
@@ -34,8 +37,9 @@ conservative distribution channel for now (a `pip install` is lower-friction
 and less likely to be read before running than a deliberate git-clone
 install, given the license's non-OSI use restrictions). `.github/workflows/publish.yml`'s
 actual "Publish to PyPI" step stays commented out until a future decision
-to lift that hold -- re-enabling it does not require a further license
-review, only a fresh decision on distribution channel. GitHub distribution
+to lift that hold. Independently, the current direct Git `dacvae` requirement
+must be replaced by a published, verified dependency before PyPI could accept
+the metadata. GitHub distribution
 must retain `LICENSE`, `LICENSE.SAM-AUDIO`, and `LICENSE.PE`; gated checkpoints
 remain user-authenticated and are never bundled or mirrored. This is policy
 documentation, not legal advice.

@@ -55,6 +55,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- Corrected codec-install documentation and missing-codec error to match the
+  declared pinned Git dependency. Release verification no longer installs
+  that same revision a second time. PyPI remains blocked by the direct Git
+  reference and the existing distribution-channel hold.
 - `SamAudio.from_pretrained` no longer builds the components lite mode deletes
   (vision encoder, rankers, span predictor), reads the checkpoint through
   `mmap`, and skips random parameter initialisation. Base model on a 4090:

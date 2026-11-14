@@ -55,8 +55,8 @@ endorse this repackaging.
   [facebook/sam-audio-large](https://huggingface.co/facebook/sam-audio-large)
 - **Perception Encoders** (vendored vision/audio-visual encoder components,
   Apache-2.0): also Meta AI Research — see [`LICENSE.PE`](LICENSE.PE)
-- **`dacvae` neural audio codec** (Apache-2.0, not vendored, installed
-  separately): [github.com/facebookresearch/dacvae](https://github.com/facebookresearch/dacvae),
+- **`dacvae` neural audio codec** (Apache-2.0, not vendored, installed from
+  its pinned Git revision by this package): [github.com/facebookresearch/dacvae](https://github.com/facebookresearch/dacvae),
   Meta AI Research
 - **Lite Mode VRAM optimization technique**: inspired by the memory-reduction
   approach used in [AudioGhost AI](https://github.com/0x0funky/audioghost-ai)
@@ -166,21 +166,26 @@ use; this documentation is not legal advice.
 
 The core SAM-Audio model uses Meta's [`dacvae`](https://github.com/facebookresearch/dacvae)
 neural audio codec (Apache-2.0) to encode/decode waveforms. The package now
-installs a pinned Git revision of `dacvae` automatically. If you installed an
-older revision of sam-audio-kit, install the codec manually:
+declares a pinned Git revision of `dacvae` in its core dependencies, so the
+GitHub-source installation above installs it automatically. This direct Git
+reference prevents publishing the current package metadata on PyPI; the
+GitHub source is the supported installation channel. Source installation also
+requires binary `torchcodec` and `xformers` packages. If dependencies were
+intentionally skipped during installation, restore the same codec revision:
 
 ```bash
-pip install "dacvae @ git+https://github.com/facebookresearch/dacvae"
+pip install "dacvae @ git+https://github.com/facebookresearch/dacvae.git@414c20785fc3a28373073ea8ef7a1316eeeaca6e"
 ```
 
 If it's missing, `sam_audio_kit.sam_audio.model.codec` raises a clear
 `ImportError` with this same instruction rather than failing with a bare
 "module not found".
 
-The test and release workflows install upstream `dacvae` at commit
-`414c20785fc3a28373073ea8ef7a1316eeeaca6e` before importing the package.
-This keeps the codec outside publishable package metadata while making the
-CI tests and wheel import smoke test execute the real model import chain.
+The test and release workflows install the package with its declared codec
+dependency at that revision, then import the real model chain. A future PyPI
+release needs a separately publishable codec dependency or a verified
+replacement; removing the dependency declaration alone would make inference
+installation incomplete.
 
 ## Quick Start
 

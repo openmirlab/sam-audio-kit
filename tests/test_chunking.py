@@ -5,9 +5,8 @@ import pytest
 import torch
 
 # sam_audio_kit/__init__.py unconditionally imports the SAM-Audio model
-# chain, which requires the `dacvae` codec (no PyPI release; not a declared
-# dependency -- see pyproject.toml and README.md "Installing the audio codec
-# (dacvae)"). Skip this module cleanly in environments without it (e.g. CI)
+# chain, which requires the pinned Git `dacvae` codec declared in pyproject.toml.
+# Skip this module cleanly in intentionally incomplete environments
 # instead of hard-failing collection.
 pytest.importorskip("dacvae")
 
